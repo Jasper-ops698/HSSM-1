@@ -59,6 +59,7 @@ const Hssm = () => {
     task: {
       task: '',
       assignedTo: '',
+      id: '',
       dueDate: '',
       priority: '',
       'task description': '',
@@ -114,7 +115,7 @@ const Hssm = () => {
       const chartData = meterReadings.map((location, index) => ({
         value: location.readings.length, // display the number of readings per location
         name: location._id, // Use the location ID as the name 
-        color: ['#8884d8', '#82ca9d', '#a6c1ee'][index % 3], // Assign colors to each location
+        color: ['#ff0000', '#00ff00', '#0000ff'][index % 3], // Assign colors to each location
       }));
 
       setDashboardData({
@@ -410,6 +411,15 @@ const Hssm = () => {
       </Grid>
 
       <Grid container spacing={3} sx={{ mt: 4 }}>
+        <Grid item xs={12}>
+          <Button
+            variant="contained"
+            style={{ backgroundColor: 'blue', color: 'white', marginBottom: '10px' }}
+            onClick={() => window.location.href = '/total'}
+          >
+            Available Services
+          </Button>
+        </Grid>
         {['incident', 'asset', 'task', 'meterReading', 'Report'].map((modal) => (
           <Grid item xs={12} md={6} lg={3} key={modal}>
             <Button

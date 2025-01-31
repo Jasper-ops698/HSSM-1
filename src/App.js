@@ -18,6 +18,7 @@ const Footer = React.lazy(() => import('./pages/AboutPage'));
 const AdminDashboard = React.lazy(() => import('./pages/Admin'));
 const Hssm = React.lazy(() => import('./pages/HSSM'));
 const NotFound = React.lazy(() => import('../src/NotFound')); // 404 Page
+const Total = React.lazy(() => import('./pages/Total'));
 
 // Updated MUI theme
 const theme = createTheme({
@@ -51,6 +52,7 @@ const App = () => {
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/about" element={<Footer />} />
+                <Route path="/total" element={<Total />} />
 
                 {/* Protected Routes */}
                 <Route 

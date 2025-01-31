@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Button,
   TextField,
@@ -18,8 +18,7 @@ import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL
-
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 const ServiceRequestForm = () => {
   const [formData, setFormData] = useState({
@@ -37,10 +36,13 @@ const ServiceRequestForm = () => {
     phone: '',
   });
   const [services, setServices] = useState([]);
+  const [filteredServices, setFilteredServices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [requestError, setRequestError] = useState(null);
   const [attachments, setAttachments] = useState([]);
+  const [priceFilter, setPriceFilter] = useState('');
+  const [nameFilter, setNameFilter] = useState('');
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -51,6 +53,7 @@ const ServiceRequestForm = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setServices(response.data);
+        setFilteredServices(response.data);
       } catch (error) {
         console.error('Error fetching services:', error.response ? error.response.data : error.message);
       } finally {
@@ -68,6 +71,21 @@ const ServiceRequestForm = () => {
     fetchServices();
     fetchUserProfile();
   }, []);
+
+  const handleFilterChange = useCallback(() => {
+    let filtered = services;
+    if (priceFilter) {
+      filtered = filtered.filter(service => service.price <= priceFilter);
+    }
+    if (nameFilter) {
+      filtered = filtered.filter(service => service.name.toLowerCase().includes(nameFilter.toLowerCase()));
+    }
+    setFilteredServices(filtered);
+  }, [services, priceFilter, nameFilter]);
+
+  useEffect(() => {
+    handleFilterChange();
+  }, [priceFilter, nameFilter, handleFilterChange]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -266,9 +284,26 @@ const ServiceRequestForm = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Filters */}
+      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+        <TextField
+          label="Filter by Price"
+          type="number"
+          value={priceFilter}
+          onChange={(e) => setPriceFilter(e.target.value)}
+          variant="outlined"
+        />
+        <TextField
+          label="Filter by Name"
+          value={nameFilter}
+          onChange={(e) => setNameFilter(e.target.value)}
+          variant="outlined"
+        />
+      </Stack>
+
       {/* Available Services */}
       <Grid container spacing={3}>
-        {services.map((service) => (
+        {filteredServices.map((service) => (
           <Grid item xs={12} sm={6} md={4} key={service._id}>
             <div
               style={{

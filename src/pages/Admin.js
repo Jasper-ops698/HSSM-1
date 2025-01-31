@@ -53,7 +53,7 @@ const AdminDashboard = () => {
           datasets: [
             {
               data: Object.values(data.userRoles),
-              backgroundColor: ['#ff6f61', '#4bc0c0', '#f0ad4e'],
+              backgroundColor: ['#ff0000', '#0000ff', '#008000', '#808080'],
             },
           ],
         });
@@ -74,7 +74,7 @@ const AdminDashboard = () => {
             {
               label: 'Services Count',
               data: Object.values(data.servicesCount),
-              backgroundColor: '#ff6347',
+              backgroundColor: Object.keys(data.servicesCount).map((_, index) => `hsl(${index * 30}, 70%, 50%)`),
             },
           ],
         });
@@ -131,6 +131,25 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAddProvider = async (newProvider) => {
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      const headers = { Authorization: `Bearer ${token}` };
+
+      setIsLoading(true);
+      const response = await axios.post(`${API_BASE_URL}/api/admin/addProvider`, newProvider, { headers });
+
+      setUsers((prevUsers) => [...prevUsers, response.data]);
+    } catch (err) {
+      console.error('Error adding provider:', err);
+      setError('Error adding provider.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handlePageChange = (event, value) => {
     setCurrentPage(value); // Update currentPage state to trigger fetch
   };
@@ -158,6 +177,14 @@ const AdminDashboard = () => {
     <div style={{ padding: '20px' }}>
       <h1>Admin Dashboard</h1>
 
+      <Button
+        variant="contained"
+        style={{ backgroundColor: 'purple', color: 'white', marginLeft: '10px' }}
+        onClick={() => window.location.href = '/total'}
+      >
+       Available Services
+      </Button>
+
       <h2>Service Providers</h2>
       {users.filter((user) => user.role === 'service-provider').length === 0 ? (
         <p>No service providers found.</p>
@@ -170,19 +197,24 @@ const AdminDashboard = () => {
                 {user.name} - {user.email}
                 <Button
                   variant="contained"
-                  color="secondary"
+                  style={{ backgroundColor: 'red', color: 'white', marginLeft: '10px' }}
                   onClick={() => handleDeleteProvider(user._id, 'serviceProvider')}
-                  style={{ marginLeft: '10px' }}
                 >
                   Delete
                 </Button>
                 <Button
                   variant="contained"
-                  color="warning"
+                  style={{ backgroundColor: 'blue', color: 'white', marginLeft: '10px' }}
                   onClick={() => handleDisableProvider(user._id, 'serviceProvider')}
-                  style={{ marginLeft: '10px' }}
                 >
                   Disable
+                </Button>
+                <Button
+                  variant="contained"
+                  style={{ backgroundColor: 'green', color: 'white', marginLeft: '10px' }}
+                  onClick={() => handleAddProvider(user._id, 'serviceProvider')}
+                >
+                  Enable
                 </Button>
               </li>
             ))}
@@ -190,30 +222,35 @@ const AdminDashboard = () => {
       )}
 
       <h2>HSSM Providers</h2>
-      {users.filter((user) => user.role === 'hssm-provider').length === 0 ? (
+      {users.filter((user) => user.role === 'HSSM-provider').length === 0 ? (
         <p>No HSSM providers found.</p>
       ) : (
         <ul>
           {users
-            .filter((user) => user.role === 'hssm-provider')
+            .filter((user) => user.role === 'HSSM-provider')
             .map((user) => (
               <li key={user._id} style={{ marginBottom: '10px' }}>
                 {user.name} - {user.email}
                 <Button
                   variant="contained"
-                  color="secondary"
+                  style={{ backgroundColor: 'darkred', color: 'white', marginLeft: '10px' }}
                   onClick={() => handleDeleteProvider(user._id, 'hssmProvider')}
-                  style={{ marginLeft: '10px' }}
                 >
                   Delete
                 </Button>
                 <Button
                   variant="contained"
-                  color="warning"
+                  style={{ backgroundColor: 'black', color: 'white', marginLeft: '10px' }}
                   onClick={() => handleDisableProvider(user._id, 'hssmProvider')}
-                  style={{ marginLeft: '10px' }}
                 >
                   Disable
+                </Button>
+                <Button
+                  variant="contained"
+                  style={{ backgroundColor: 'green', color: 'white', marginLeft: '10px' }}
+                  onClick={() => handleAddProvider(user._id, 'serviceProvider')}
+                >
+                  Enable
                 </Button>
               </li>
             ))}

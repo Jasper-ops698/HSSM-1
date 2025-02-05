@@ -78,7 +78,7 @@ const Total = () => {
                 />
             </Stack>
             <Grid container spacing={3}>
-            {filteredServices.map((service) => (
+            {Array.isArray(filteredServices) && filteredServices.map((service) => (
                 <Grid item xs={12} sm={6} md={4} key={service._id}>
                     <div
                         style={{

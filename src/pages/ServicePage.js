@@ -52,8 +52,13 @@ const ServiceRequestForm = () => {
         const response = await axios.get(`${API_BASE_URL}/api/services/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setServices(response.data);
-        setFilteredServices(response.data);
+        if (Array.isArray(response.data)) {
+          setServices(response.data);
+          setFilteredServices(response.data);
+        } else {
+          setServices([]);
+          setFilteredServices([]);
+        }
       } catch (error) {
         console.error('Error fetching services:', error.response ? error.response.data : error.message);
       } finally {

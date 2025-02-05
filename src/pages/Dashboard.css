@@ -1,6 +1,6 @@
 /* General Dashboard Styles */
 .dashboard-container {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   font-family: 'Open Sans', sans-serif; /* Using a more modern font */
@@ -143,6 +143,7 @@ h1, h2 {
   margin-bottom: 20px;
   display: flex;
   justify-content: flex-end;
+  gap: 10px; /* Added gap for better spacing */
 }
 
 .search-bar input {
@@ -180,4 +181,53 @@ h1, h2 {
   border-radius: 5px;
   background-color: #f8d7da; /* Light red background for error */
   color: #721c24; /* Red text for error */
+}
+
+/* Responsive Design */
+@media (min-width: 600px) {
+  .dashboard-container {
+    padding: 15px;
+  }
+
+  .modal-content {
+    width: 90%;
+    padding: 20px;
+  }
+
+  .search-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-bar input {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .requests-section li {
+    padding: 10px;
+  }
+
+  .modal form button {
+    padding: 10px;
+  }
+}
+
+@media (min-width: 600px) {
+  .dashboard-container {
+    padding: 10px;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 15px;
+  }
+
+  .requests-section li {
+    font-size: 14px;
+  }
+
+  .search-bar button {
+    padding: 8px 10px;
+  }
 }

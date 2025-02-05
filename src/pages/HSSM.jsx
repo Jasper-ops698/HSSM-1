@@ -14,6 +14,8 @@ import {
 import { Add } from '@mui/icons-material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { useSpring, animated } from 'react-spring';
+import { useTheme } from '@mui/material/styles';
 
 const modalStyle = {
   position: 'absolute',
@@ -168,27 +170,27 @@ const Hssm = () => {
 
     const data = new FormData();
 
-  if (modal === 'meterReading') {
-    // Handle meterReading data separately
-    const { location, reading, date } = formData.meterReading;
-    if (!location || !reading || !date) {
-      alert('All fields are required for a meter reading');
-      return;
-    }
+    if (modal === 'meterReading') {
+      // Handle meterReading data separately
+      const { location, reading, date } = formData.meterReading;
+      if (!location || !reading || !date) {
+        alert('All fields are required for a meter reading');
+        return;
+      }
 
-    data.append('location', location);
-    data.append('reading', reading);
-    data.append('date', date);
-  } else {
-    // Handle other modals as before
-    const fields = formData[modal];
-    for (const key in fields) {
-      if (fields[key] !== null && fields[key] !== undefined) {
-        data.append(key, fields[key]);
+      data.append('location', location);
+      data.append('reading', reading);
+      data.append('date', date);
+    } else {
+      // Handle other modals as before
+      const fields = formData[modal];
+      for (const key in fields) {
+        if (fields[key] !== null && fields[key] !== undefined) {
+          data.append(key, fields[key]);
+        }
       }
     }
-  }
-  const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
 
     try {
       const response = await fetch(endpointMap[modal], {
@@ -274,7 +276,7 @@ const Hssm = () => {
               </TextField>
             );
           }
-  
+
           if (field === 'date') {
             return (
               <TextField
@@ -295,7 +297,7 @@ const Hssm = () => {
               />
             );
           }
-  
+
           if (field === 'category') {
             return (
               <TextField
@@ -312,7 +314,7 @@ const Hssm = () => {
               </TextField>
             );
           }
-  
+
           if (field === 'file') {
             return (
               <Button key={field} variant="outlined" component="label" fullWidth sx={{ mt: 2 }}>
@@ -321,7 +323,7 @@ const Hssm = () => {
               </Button>
             );
           }
-  
+
           return (
             <TextField
               key={field}
@@ -338,7 +340,13 @@ const Hssm = () => {
         Submit
       </Button>
     </>
-  );  
+  );
+
+  const [collectedData, setCollectedData] = useState(null);
+
+  const handleViewData = () => {
+    setCollectedData(formData);
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -383,28 +391,28 @@ const Hssm = () => {
                 Meter Readings
               </Typography>
               {dashboardData.meterReadings && dashboardData.meterReadings.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    dataKey="value"
-                    data={dashboardData.meterReadings}
-                    outerRadius={80}
-                    fill="#8884d8"
-                  >
-                    {dashboardData.meterReadings.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.color || '#8884d8'}
-                      />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-            <Typography variant="body2" color="textSecondary">
-              No meter readings available
-            </Typography>
-          )}
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      dataKey="value"
+                      data={dashboardData.meterReadings}
+                      outerRadius={80}
+                      fill="#8884d8"
+                    >
+                      {dashboardData.meterReadings.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color || '#8884d8'}
+                        />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <Typography variant="body2" color="textSecondary">
+                  No meter readings available
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -432,6 +440,15 @@ const Hssm = () => {
             </Button>
           </Grid>
         ))}
+        <Grid item xs={12}>
+          <Button
+            variant="contained"
+            style={{ backgroundColor: 'green', color: 'white', marginBottom: '10px' }}
+            onClick={handleViewData}
+          >
+            View Collected Data
+          </Button>
+        </Grid>
       </Grid>
 
       {Object.keys(showModal).map((modal) => (
@@ -443,7 +460,44 @@ const Hssm = () => {
           <Box sx={modalStyle}>{renderModalContent(modal)}</Box>
         </Modal>
       ))}
+
+      {collectedData && <DataDisplay data={collectedData} />}
     </Box>
+  );
+};
+
+const DataDisplay = ({ data }) => {
+  const theme = useTheme();
+  const props = useSpring({
+    from: { opacity: 0, transform: 'translate3d(0,-40px,0)' },
+    to: { opacity: 1, transform: 'translate3d(0,0px,0)' },
+    config: { tension: 280, friction: 60 },
+  });
+
+  return (
+    <animated.div style={props}>
+      <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: 2, boxShadow: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Collected Data
+        </Typography>
+        <Grid container spacing={2}>
+          {Object.keys(data).map((key) => (
+            <Grid item xs={12} md={6} lg={4} key={key}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" color="textSecondary" gutterBottom>
+                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                  </Typography>
+                  <Typography variant="body1">
+                    {JSON.stringify(data[key], null, 2)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    </animated.div>
   );
 };
 

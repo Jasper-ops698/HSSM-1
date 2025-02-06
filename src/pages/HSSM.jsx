@@ -475,34 +475,52 @@ const DataDisplay = ({ data }) => {
     visible: { opacity: 1, y: 0 },
   };
 
+  // Helper function to format JSON data into a readable format
+  const formatData = (data) => {
+    if (typeof data === 'object' && data !== null) {
+      return Object.entries(data).map(([key, value]) => (
+        <Box key={key} sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+            {key.charAt(0).toUpperCase() + key.slice(1)}:
+          </Typography>
+          <Typography variant="body1" sx={{ ml: 2 }}>
+            {formatData(value)}
+          </Typography>
+        </Box>
+      ));
+    } else {
+      return data.toString();
+    }
+  };
+
   return (
     <motion.div
-      initial="hidden" // Initial animation state
-      animate="visible" // Animation to apply
-      variants={animationVariants} // Variants for the animation
-      transition={{ type: 'spring', stiffness: 280, damping: 60 }} // Spring animation configuration
+      initial="hidden"
+      animate="visible"
+      variants={animationVariants}
+      transition={{ type: 'spring', stiffness: 280, damping: 60 }}
     >
-      <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: 2, boxShadow: 3 }}>
-        <Typography variant="h5" gutterBottom>
+      <Paper elevation={3} sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: 2 }}>
+        <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
           Collected Data
         </Typography>
         <Grid container spacing={2}>
           {Object.keys(data).map((key) => (
             <Grid item xs={12} md={6} lg={4} key={key}>
-              <Card>
+              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent>
-                  <Typography variant="h6" color="textSecondary" gutterBottom>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.secondary.main, mb: 2 }}>
                     {key.charAt(0).toUpperCase() + key.slice(1)}
                   </Typography>
-                  <Typography variant="body1">
-                    {JSON.stringify(data[key], null, 2)}
-                  </Typography>
+                  <Box sx={{ ml: 1 }}>
+                    {formatData(data[key])}
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
-      </Box>
+      </Paper>
     </motion.div>
   );
 };

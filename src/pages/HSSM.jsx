@@ -14,7 +14,7 @@ import {
 import { Add } from '@mui/icons-material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { useSpring, animated } from 'react-spring';
+import { motion } from 'framer-motion';
 import { useTheme } from '@mui/material/styles';
 
 const modalStyle = {
@@ -468,14 +468,20 @@ const Hssm = () => {
 
 const DataDisplay = ({ data }) => {
   const theme = useTheme();
-  const props = useSpring({
-    from: { opacity: 0, transform: 'translate3d(0,-40px,0)' },
-    to: { opacity: 1, transform: 'translate3d(0,0px,0)' },
-    config: { tension: 280, friction: 60 },
-  });
+
+  // Define animation variants for Framer Motion
+  const animationVariants = {
+    hidden: { opacity: 0, y: -40 },
+    visible: { opacity: 1, y: 0 },
+  };
 
   return (
-    <animated.div style={props}>
+    <motion.div
+      initial="hidden" // Initial animation state
+      animate="visible" // Animation to apply
+      variants={animationVariants} // Variants for the animation
+      transition={{ type: 'spring', stiffness: 280, damping: 60 }} // Spring animation configuration
+    >
       <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: 2, boxShadow: 3 }}>
         <Typography variant="h5" gutterBottom>
           Collected Data
@@ -497,7 +503,7 @@ const DataDisplay = ({ data }) => {
           ))}
         </Grid>
       </Box>
-    </animated.div>
+    </motion.div>
   );
 };
 

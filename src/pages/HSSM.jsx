@@ -478,7 +478,9 @@ const DataDisplay = ({ data }) => {
 
   // Helper function to format JSON data into a readable format
   const formatData = (data) => {
-    if (typeof data === 'object' && data !== null) {
+    if (data === null) {
+      return 'null'; // Handle null values explicitly
+    } else if (typeof data === 'object') {
       return Object.entries(data).map(([key, value]) => (
         <Box key={key} sx={{ mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
@@ -490,7 +492,7 @@ const DataDisplay = ({ data }) => {
         </Box>
       ));
     } else {
-      return data.toString();
+      return data.toString(); // Handle other primitive values
     }
   };
 

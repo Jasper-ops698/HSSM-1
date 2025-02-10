@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import axios from "axios";
 
 const ChatbotAPI = () => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessage] = useState([]);
   const [input, setInput] = useState("");
 
   const sendMessage =async () => {

@@ -50,4 +50,4 @@ return (
     );
   };
 
-  export default ChatBotAPI;
+  export default ChatbotAPI;

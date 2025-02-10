@@ -3,7 +3,7 @@ import axios from "axios";
 
 const ChatbotAPI = () => {
   const [messages, setMessages] = useState([]);
-  const [input setInput] = useState("");
+  const [input, setInput] = useState("");
 
   const sendMessage =async () => {
   if (!input.trim()) return;

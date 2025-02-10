@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Box, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 import Footer from '../pages/AboutPage';  // Imported Footer component
-import ChatbotAPI from "./ChatbotAPI";
+import ChatbotAPI from "../components/ChatbotAPI";
 
 const Home = () => {
   return (

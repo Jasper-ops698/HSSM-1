@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Box, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 import Footer from '../pages/AboutPage';  // Imported Footer component
+import ChatbotAPI from "./ChatbotAPI";
 
 const Home = () => {
   return (
@@ -20,6 +21,9 @@ const Home = () => {
         <Button variant="outlined" color="primary" component={Link} to="/login">
           Login
         </Button>
+        <div>
+          <ChatbotAPI />
+        </div>
       </Box>
 
       {/* Footer */}

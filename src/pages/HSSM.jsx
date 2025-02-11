@@ -420,15 +420,6 @@ const Hssm = () => {
       </Grid>
 
       <Grid container spacing={3} sx={{ mt: 4 }}>
-        <Grid item xs={12}>
-          <Button
-            variant="contained"
-            style={{ backgroundColor: 'blue', color: 'white', marginBottom: '10px' }}
-            onClick={() => window.location.href = '/total'}
-          >
-            Available Services
-          </Button>
-        </Grid>
         {['incident', 'asset', 'task', 'meterReading', 'Report'].map((modal) => (
           <Grid item xs={12} md={6} lg={3} key={modal}>
             <Button
@@ -503,6 +494,15 @@ const DataDisplay = ({ data }) => {
       variants={animationVariants}
       transition={{ type: 'spring', stiffness: 280, damping: 60 }}
     >
+      <Grid item xs={12}>
+          <Button
+            variant="contained"
+            style={{ backgroundColor: 'blue', color: 'white', marginBottom: '10px' }}
+            onClick={() => window.location.href = '/total'}
+          >
+            Available Services
+          </Button>
+        </Grid>
       <Paper elevation={3} sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: 2 }}>
         <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
           Collected Data

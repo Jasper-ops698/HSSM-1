@@ -488,13 +488,7 @@ const DataDisplay = ({ data }) => {
   };
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={animationVariants}
-      transition={{ type: 'spring', stiffness: 280, damping: 60 }}
-    >
-      <Grid item xs={12}>
+     <Grid item xs={12}>
           <Button
             variant="contained"
             style={{ backgroundColor: 'blue', color: 'white', marginBottom: '10px' }}
@@ -503,6 +497,12 @@ const DataDisplay = ({ data }) => {
             Available Services
           </Button>
         </Grid>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={animationVariants}
+      transition={{ type: 'spring', stiffness: 280, damping: 60 }}
+    >
       <Paper elevation={3} sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: 2 }}>
         <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
           Collected Data

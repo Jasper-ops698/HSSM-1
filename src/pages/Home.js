@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Box, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
-import Footer from '../components/Footer';  // Ensure correct import for Footer
+import Footer from './AboutPage';  
 import { BubbleChat } from 'flowise-embed-react';
 
 const Home = () => {

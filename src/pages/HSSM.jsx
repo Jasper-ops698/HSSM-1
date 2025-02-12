@@ -444,6 +444,15 @@ const Hssm = () => {
         <Grid item xs={12}>
           <Button
             variant="contained"
+            style={{ backgroundColor: 'blue', color: 'white', marginBottom: '10px' }}
+            onClick={() => window.location.href = '/total'}
+          >
+            Available Services
+          </Button>
+        </Grid>
+        <Grid item xs={12}>
+          <Button
+            variant="contained"
             style={{ backgroundColor: 'green', color: 'white', marginBottom: '10px' }}
             onClick={handleViewData}
           >

@@ -18,6 +18,7 @@
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",
     "firebase": "^11.1.0",
+    "flowise-embed-react": "^1.0.7",
     "framer-motion": "^12.3.1",
     "jwt-decode": "^4.0.0",
     "os-browserify": "^0.3.0",

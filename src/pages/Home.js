@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button, Box, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
-import Footer from '../pages/AboutPage';  // Imported Footer component
+import Footer from './AboutPage';  
+import { BubbleChat } from 'flowise-embed-react';
 
 const Home = () => {
   return (
@@ -20,6 +21,12 @@ const Home = () => {
         <Button variant="outlined" color="primary" component={Link} to="/login">
           Login
         </Button>
+
+        {/* Chatbot Integration */}
+        <BubbleChat
+          chatflowid="ad955aba-c62e-49df-940b-5e8260bf6af2"
+          apiHost="http://localhost:3000"
+        />
       </Box>
 
       {/* Footer */}

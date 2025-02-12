@@ -420,15 +420,6 @@ const Hssm = () => {
       </Grid>
 
       <Grid container spacing={3} sx={{ mt: 4 }}>
-        <Grid item xs={12}>
-          <Button
-            variant="contained"
-            style={{ backgroundColor: 'blue', color: 'white', marginBottom: '10px' }}
-            onClick={() => window.location.href = '/total'}
-          >
-            Available Services
-          </Button>
-        </Grid>
         {['incident', 'asset', 'task', 'meterReading', 'Report'].map((modal) => (
           <Grid item xs={12} md={6} lg={3} key={modal}>
             <Button

@@ -352,14 +352,14 @@ const Hssm = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Dashboard
+        Your Dashboard
       </Typography>
       <Grid container spacing={3}>
         <Grid item xs={12} md={6} lg={3}>
           <Card>
             <CardContent>
               <Typography variant="h6" color="textSecondary" gutterBottom>
-                Inventory Management
+                Your Inventory
               </Typography>
               <Typography variant="h5">{dashboardData.totalAssets}</Typography>
             </CardContent>
@@ -369,7 +369,7 @@ const Hssm = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" color="textSecondary" gutterBottom>
-                Pending Incidents
+                Your Pending Incidents
               </Typography>
               <Typography variant="h5">{dashboardData.pendingIncidents}</Typography>
             </CardContent>
@@ -379,7 +379,7 @@ const Hssm = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" color="textSecondary" gutterBottom>
-                Maintenance Tasks
+                Your Maintenance Tasks
               </Typography>
               <Typography variant="h5">{dashboardData.maintenanceTasks}</Typography>
             </CardContent>
@@ -389,7 +389,7 @@ const Hssm = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" color="textSecondary" gutterBottom>
-                Meter Readings
+                Your Meter Readings
               </Typography>
               {dashboardData.meterReadings && dashboardData.meterReadings.length > 0 ? (
                 <ResponsiveContainer width="100%" height={200}>

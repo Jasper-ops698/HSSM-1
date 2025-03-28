@@ -484,9 +484,9 @@ const DataDisplay = ({ data }) => {
       return Object.entries(data).map(([key, value]) => (
         <Box key={key} sx={{ mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
-            {key.charAt(0).toUpperCase() + key.slice(1)}:
+            {key.charAt(0).toUpperCase() + key.replace(/_/g, ' ').slice(1)}:
           </Typography>
-          <Typography variant="body1" sx={{ ml: 2 }}>
+          <Typography variant="body2" sx={{ ml: 2, color: theme.palette.text.secondary }}>
             {formatData(value)}
           </Typography>
         </Box>
@@ -503,19 +503,64 @@ const DataDisplay = ({ data }) => {
       variants={animationVariants}
       transition={{ type: 'spring', stiffness: 280, damping: 60 }}
     >
-      <Paper elevation={3} sx={{ p: 3, backgroundColor: theme.palette.background.paper, borderRadius: 2 }}>
-        <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-          Collected Data
+      <Paper
+        elevation={4}
+        sx={{
+          p: 4,
+          backgroundColor: theme.palette.background.default,
+          borderRadius: 3,
+          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{
+            fontWeight: 'bold',
+            color: theme.palette.primary.main,
+            textAlign: 'center',
+            mb: 3,
+          }}
+        >
+          Collected Data Overview
         </Typography>
-        <Grid container spacing={2}>
+        <Grid container spacing={3}>
           {Object.keys(data).map((key) => (
             <Grid item xs={12} md={6} lg={4} key={key}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: 2,
+                  boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.05)',
+                }}
+              >
                 <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.secondary.main, mb: 2 }}>
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 'bold',
+                      color: theme.palette.secondary.main,
+                      mb: 2,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {key.charAt(0).toUpperCase() + key.replace(/_/g, ' ').slice(1)}
                   </Typography>
-                  <Box sx={{ ml: 1 }}>
+                  <Box
+                    sx={{
+                      ml: 1,
+                      maxHeight: 150,
+                      overflowY: 'auto',
+                      padding: 1,
+                      backgroundColor: theme.palette.background.paper,
+                      borderRadius: 1,
+                      border: `1px solid ${theme.palette.divider}`,
+                    }}
+                  >
                     {formatData(data[key])}
                   </Box>
                 </CardContent>

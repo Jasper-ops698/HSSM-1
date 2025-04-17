@@ -1,362 +1,462 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Button,
-  TextField,
-  MenuItem,
-  CircularProgress,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Grid,
-  Typography,
+    Button,
+    TextField,
+    MenuItem,
+    CircularProgress,
+    Stack,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Grid,
+    Typography,
+    Container,    // Added
+    Box,          // Added
+    Snackbar,     // Added
+    Alert,        // Added
+    Card,         // Added
+    CardContent,  // Added
+    CardMedia,    // Added
+    Paper,        // Added
+    FormControl,  // Added
+    InputLabel,   // Added
+    Select,       // Added
+    List,         // Added for attachments
+    ListItem,     // Added for attachments
+    ListItemText, // Added for attachments
+    IconButton,   // Added for attachments
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import UploadFileIcon from '@mui/icons-material/UploadFile'; // Added
+import DeleteIcon from '@mui/icons-material/Delete';       // Added
+import dayjs from 'dayjs'; // Ensure dayjs is imported if used directly
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext'; // Assuming useAuth provides user profile
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const FALLBACK_IMAGE_URL = `${API_BASE_URL}/uploads/placeholder-image.png`;
 
 const ServiceRequestForm = () => {
-  const [formData, setFormData] = useState({
-    serviceType: '',
-    date: null,
-    time: null,
-    description: '',
-    location: '',
-    review: '',
-    rating: '',
-  });
-  const [userProfile, setUserProfile] = useState({
-    name: '',
-    email: '',
-    phone: '',
-  });
-  const [services, setServices] = useState([]);
-  const [filteredServices, setFilteredServices] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [requestError, setRequestError] = useState(null);
-  const [attachments, setAttachments] = useState([]);
-  const [priceFilter, setPriceFilter] = useState('');
-  const [nameFilter, setNameFilter] = useState('');
-
-  useEffect(() => {
-    const fetchServices = async () => {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_BASE_URL}/api/services/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (Array.isArray(response.data)) {
-          setServices(response.data);
-          setFilteredServices(response.data);
-        } else {
-          setServices([]);
-          setFilteredServices([]);
-        }
-      } catch (error) {
-        console.error('Error fetching services:', error.response ? error.response.data : error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const fetchUserProfile = () => {
-      const storedProfile = JSON.parse(localStorage.getItem('userData'));
-      if (storedProfile) {
-        setUserProfile(storedProfile);
-      }
-    };
-
-    fetchServices();
-    fetchUserProfile();
-  }, []);
-
-  const handleFilterChange = useCallback(() => {
-    let filtered = services;
-    if (priceFilter) {
-      filtered = filtered.filter(service => service.price <= priceFilter);
-    }
-    if (nameFilter) {
-      filtered = filtered.filter(service => service.name.toLowerCase().includes(nameFilter.toLowerCase()));
-    }
-    setFilteredServices(filtered);
-  }, [services, priceFilter, nameFilter]);
-
-  useEffect(() => {
-    handleFilterChange();
-  }, [priceFilter, nameFilter, handleFilterChange]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.serviceType || !formData.date || !formData.time || !formData.description || !formData.location) {
-      setRequestError('Please fill in all required fields.');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setRequestError('Please log in to submit a request.');
-        return;
-      }
-
-      const requestData = new FormData();
-      requestData.append('serviceType', formData.serviceType);
-      requestData.append('date', formData.date);
-      requestData.append('time', formData.time);
-      requestData.append('description', formData.description);
-      requestData.append('location', formData.location);
-      requestData.append('userName', userProfile.name);
-      requestData.append('userEmail', userProfile.email);
-      requestData.append('userPhone', userProfile.phone);
-      attachments.forEach((file, index) => {
-        requestData.append(`attachments[${index}]`, file);
-      });
-
-      // POST request to submit service request
-      await axios.post(`${API_BASE_URL}/api/requests/`, requestData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
-      });
-
-      // Reset form data after submitting request
-      setFormData({
-        serviceType: '',
+    const { user } = useAuth(); // Get user info from context
+    const fileInputRef = useRef(null);
+ 
+    // --- State ---
+    const [formData, setFormData] = useState({
+        serviceId: '', // Store ID, not name
         date: null,
         time: null,
         description: '',
         location: '',
-        review: '',
-        rating: '',
-      });
-      setAttachments([]);
-      setModalOpen(false);
-      setRequestError(null);
+        // Removed review/rating fields
+    });
+    const [attachments, setAttachments] = useState([]); // State for file objects
+    const [services, setServices] = useState([]);
+    const [filteredServices, setFilteredServices] = useState([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false); // Separate submitting state
+    const [isModalOpen, setModalOpen] = useState(false);
+    const [error, setError] = useState(null); // General error (e.g., fetching)
+    const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'info' });
+    // Filters
+    const [priceFilter, setPriceFilter] = useState('');
+    const [nameFilter, setNameFilter] = useState('');
 
-      // Notify user that the request was successfully submitted
-      alert('Service request submitted successfully!');
-    } catch (error) {
-      setRequestError('An error occurred while submitting the request.');
-    }
-  };
+    // --- Data Fetching ---
+    const fetchServices = useCallback(async () => {
+        setIsLoadingServices(true);
+        setError(null);
+        try {
+            const token = localStorage.getItem('token'); // Still need token for API access
+             if (!token) {
+                setError('Authentication required.'); // Set error if no token
+                setIsLoadingServices(false);
+                return;
+             }
+            const response = await axios.get(`${API_BASE_URL}/api/services/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = response.data || [];
+            if (Array.isArray(data)) {
+                setServices(data);
+                setFilteredServices(data); // Initially show all
+            } else {
+                 console.warn("Fetched services data is not an array:", data);
+                setServices([]);
+                setFilteredServices([]);
+            }
+        } catch (err) {
+            console.error('Error fetching services:', err.response ? err.response.data : err.message);
+            setError(`Failed to fetch services: ${err.response?.data?.message || err.message}`);
+            setServices([]);
+            setFilteredServices([]);
+        } finally {
+            setIsLoadingServices(false);
+        }
+    }, []);
 
-  const handleReviewSubmit = async (serviceId, review, rating) => {
-    if (!review || !rating || rating < 1 || rating > 5) {
-      setRequestError('Please provide a valid review and rating (1-5).');
-      return;
-    }
+    useEffect(() => {
+        fetchServices();
+    }, [fetchServices]);
 
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setRequestError('Please log in to submit a review.');
-        return;
-      }
+    // --- Filtering Logic ---
+    useEffect(() => {
+        let filtered = services;
 
-      const reviewData = { review, rating };
+        const maxPrice = parseFloat(priceFilter);
+        if (!isNaN(maxPrice) && maxPrice >= 0) {
+            filtered = filtered.filter(service => service.price <= maxPrice);
+        }
 
-      // POST request to submit review
-      await axios.post(`${API_BASE_URL}/api/services/${serviceId}/reviews`, reviewData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        if (nameFilter.trim()) {
+            filtered = filtered.filter(service =>
+                service.name.toLowerCase().includes(nameFilter.trim().toLowerCase())
+            );
+        }
+        setFilteredServices(filtered);
+    }, [priceFilter, nameFilter, services]);
 
-      alert('Review submitted successfully!');
-    } catch (error) {
-      setRequestError('An error occurred while submitting the review.');
-    }
-  };
+    // --- Handlers ---
+    const handleModalOpen = (serviceId = '') => {
+        // Reset form, optionally pre-select service if triggered from a card
+        setFormData({
+            serviceId: serviceId,
+            date: null,
+            time: null,
+            description: '',
+            location: '',
+        });
+        setAttachments([]); // Clear attachments when opening modal
+        setError(null); // Clear previous form errors
+        setModalOpen(true);
+    };
 
-  return (
-    <div>
-      {/* Service Request Form */}
-      <Button variant="contained" color="primary" onClick={() => setModalOpen(true)} sx={{ mb: 3 }}>
-        Request a Service
-      </Button>
+    const handleModalClose = () => {
+        setModalOpen(false);
+        // Consider resetting form state after close animation if needed
+    };
 
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Request a Service</DialogTitle>
-        <DialogContent>
-          {isLoading ? (
-            <Stack alignItems="center" justifyContent="center" sx={{ height: '200px' }}>
-              <CircularProgress />
-            </Stack>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              {requestError && <Typography color="error">{requestError}</Typography>}
+    const handleFormInputChange = (event) => {
+        const { name, value } = event.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
-              {/* Simple User Profile Information */}
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                <strong>Name:</strong> {userProfile.name}
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                <strong>Email:</strong> {userProfile.email}
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                <strong>Phone:</strong> {userProfile.phone}
-              </Typography>
+    const handleDateChange = (date) => {
+        setFormData(prev => ({ ...prev, date }));
+    };
 
-              {/* Service Type */}
-              <TextField
-                select
-                label="Service Type"
-                value={formData.serviceType}
-                onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
-                fullWidth
-                margin="normal"
-                variant="outlined"
-              >
-                {services.map((service) => (
-                  <MenuItem key={service._id} value={service.name}>
-                    {service.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+    const handleTimeChange = (time) => {
+        setFormData(prev => ({ ...prev, time }));
+    };
 
-              {/* Date and Time */}
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <Stack spacing={2}>
-                  <DesktopDatePicker
-                    label="Date"
-                    inputFormat="MM/DD/YYYY"
-                    value={formData.date}
-                    onChange={(date) => setFormData({ ...formData, date })}
-                    renderInput={(params) => <TextField {...params} fullWidth />}
-                  />
-                  <TimePicker
-                    label="Time"
-                    value={formData.time}
-                    onChange={(time) => setFormData({ ...formData, time })}
-                    renderInput={(params) => <TextField {...params} fullWidth />}
-                  />
-                </Stack>
-              </LocalizationProvider>
+    const handleAttachmentChange = (event) => {
+        if (event.target.files) {
+            // Append new files to existing ones, prevent duplicates maybe? For simplicity, just add.
+             setAttachments(prev => [...prev, ...Array.from(event.target.files)]);
+        }
+    };
 
-              {/* Location */}
-              <TextField
-                label="Location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                fullWidth
-                margin="normal"
-                variant="outlined"
-              />
+     const handleRemoveAttachment = (fileNameToRemove) => {
+        setAttachments(prev => prev.filter(file => file.name !== fileNameToRemove));
+     };
 
-              {/* Description */}
-              <TextField
-                label="Description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                fullWidth
-                margin="normal"
-                variant="outlined"
-                multiline
-                rows={4}
-              />
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        // Validation
+        if (!formData.serviceId || !formData.date || !formData.time || !formData.description || !formData.location) {
+            setFeedback({ open: true, message: 'Please fill in all required fields (Service, Date, Time, Location, Description).', severity: 'warning' });
+            return;
+        }
+        if (!user) {
+            setFeedback({ open: true, message: 'User information not found. Please log in again.', severity: 'error' });
+            return;
+        }
 
-              {/* File Attachments */}
-              <TextField
-                type="file"
-                inputProps={{ multiple: true }}
-                onChange={(e) => setAttachments(Array.from(e.target.files))}
-                fullWidth
-                margin="normal"
-                variant="outlined"
-              />
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setFeedback({ open: true, message: 'Authentication token missing. Please log in.', severity: 'error' });
+            return;
+        }
 
-              {/* Submit Request */}
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                sx={{ mt: 2 }}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Submitting...' : 'Submit Request'}
-              </Button>
-            </form>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setModalOpen(false)} color="secondary">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+        setIsSubmitting(true);
+        setFeedback({ open: false, message: '', severity: 'info' }); // Clear previous feedback
 
-      {/* Filters */}
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-        <TextField
-          label="Filter by Price"
-          type="number"
-          value={priceFilter}
-          onChange={(e) => setPriceFilter(e.target.value)}
-          variant="outlined"
-        />
-        <TextField
-          label="Filter by Name"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-          variant="outlined"
-        />
-      </Stack>
+        const requestData = new FormData();
+        requestData.append('service', formData.serviceId); // Send service ID
+        requestData.append('date', dayjs(formData.date).toISOString()); // Send ISO string date
+        requestData.append('time', dayjs(formData.time).toISOString()); // Send ISO string time (or format as needed by backend)
+        requestData.append('description', formData.description);
+        requestData.append('location', formData.location);
+        // User info from context
+        requestData.append('userName', user.name || user.username || 'N/A'); // Adjust based on your user object structure
+        requestData.append('userEmail', user.email || 'N/A');
+        requestData.append('userPhone', user.phone || 'N/A'); // Assuming phone is available
 
-      {/* Available Services */}
-      <Grid container spacing={3}>
-        {filteredServices.map((service) => (
-          <Grid item xs={12} sm={6} md={4} key={service._id}>
-            <div
-              style={{
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                padding: '16px',
-                textAlign: 'center',
-                boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
-              }}
+        attachments.forEach((file) => {
+            requestData.append('attachments', file); // Use same field name for multiple files
+        });
+
+        try {
+            await axios.post(`${API_BASE_URL}/api/requests/`, requestData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    // Content-Type is set automatically by browser for FormData
+                },
+            });
+
+            setFeedback({ open: true, message: 'Service request submitted successfully!', severity: 'success' });
+            handleModalClose(); // Close modal on success
+            // Optionally clear form fields here if not done by handleModalOpen/Close logic
+        } catch (err) {
+            console.error('Error submitting request:', err.response ? err.response.data : err.message);
+            setFeedback({ open: true, message: `Submission failed: ${err.response?.data?.message || err.message}`, severity: 'error' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleCloseFeedback = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setFeedback({ ...feedback, open: false });
+    };
+
+    const renderImageUrl = (imagePath) => {
+        if (!imagePath) return FALLBACK_IMAGE_URL;
+        if (imagePath.startsWith('data:image')) return imagePath;
+        return `${API_BASE_URL}/uploads/${imagePath}`;
+    };
+
+    // --- Render ---
+    return (
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Snackbar
+                open={feedback.open}
+                autoHideDuration={6000}
+                onClose={handleCloseFeedback}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             >
-              <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
-                {service.name}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 2, color: '#555' }}>
-                {service.description}
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Price: Ksh{service.price}
-              </Typography>
-              {service.image && (
-                <>
-                  <img
-                    src={`data:image/jpeg;base64,${service.image}`}
-                    alt={service.name}
-                    style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
-                  />
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => {
-                      const review = prompt('Enter your review:');
-                      const rating = prompt('Enter your rating (1-5):');
-                      if (review && rating) {
-                        handleReviewSubmit(service._id, review, rating);
-                      }
-                    }}
-                    sx={{ mt: 2 }}
-                  >
-                    Submit Review
-                  </Button>
-                </>
-              )}
-            </div>
-          </Grid>
-        ))}
-      </Grid>
-    </div>
-  );
+                <Alert onClose={handleCloseFeedback} severity={feedback.severity} sx={{ width: '100%' }} variant="filled">
+                    {feedback.message}
+                </Alert>
+            </Snackbar>
+
+            <Typography variant="h4" component="h1" align="center" gutterBottom sx={{ mb: 4 }}>
+                Browse & Request Services
+            </Typography>
+
+             {/* Filters */}
+             <Paper elevation={1} sx={{ p: 2, mb: 4, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <TextField
+                    label="Filter by Max Price (Ksh)"
+                    type="number"
+                    size="small"
+                    value={priceFilter}
+                    onChange={(e) => setPriceFilter(e.target.value)}
+                    InputProps={{ inputProps: { min: 0 } }}
+                    sx={{ minWidth: '200px' }}
+                />
+                <TextField
+                    label="Filter by Name"
+                    size="small"
+                    value={nameFilter}
+                    onChange={(e) => setNameFilter(e.target.value)}
+                    sx={{ minWidth: '250px' }}
+                />
+             </Paper>
+
+            {/* Request Button */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+                 <Button variant="contained" color="primary" onClick={() => handleModalOpen()} size="large">
+                    Request a Service
+                 </Button>
+            </Box>
+
+            {/* Service Grid */}
+            {isLoadingServices ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={50} /></Box>
+            ) : error ? (
+                <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+            ) : filteredServices.length === 0 ? (
+                <Typography sx={{ textAlign: 'center', mt: 4, color: 'text.secondary' }}>
+                    No services found matching your criteria.
+                </Typography>
+            ) : (
+                <Grid container spacing={3}>
+                    {filteredServices.map((service) => (
+                        <Grid item xs={12} sm={6} md={4} key={service._id}>
+                            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                <CardMedia
+                                    component="img"
+                                    height="180" // Adjusted height
+                                    image={renderImageUrl(service.imagePath)}
+                                    alt={service.name}
+                                    onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE_URL; }}
+                                    sx={{ objectFit: 'cover' }}
+                                />
+                                <CardContent sx={{ flexGrow: 1 }}>
+                                    <Typography gutterBottom variant="h6" component="div" noWrap title={service.name}>
+                                        {service.name}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                        {service.description}
+                                    </Typography>
+                                    <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                                        Ksh {service.price?.toLocaleString() || 'N/A'}
+                                    </Typography>
+                                </CardContent>
+                                {/* Removed review button */}
+                                {/* Optional: Add button to directly request *this* service */}
+                                {/* <CardActions>
+                                    <Button size="small" onClick={() => handleModalOpen(service._id)}>Request This Service</Button>
+                                </CardActions> */}
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
+            )}
+
+            {/* Service Request Modal */}
+            <Dialog open={isModalOpen} onClose={handleModalClose} fullWidth maxWidth="sm">
+                <DialogTitle>Request a Service</DialogTitle>
+                <DialogContent>
+                    {/* Show Loading/Error specific to service list within modal if needed */}
+                    {/* {isLoadingServices && <CircularProgress />} */}
+
+                    <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+                         {/* Display User Info Subtly */}
+                         <Typography variant="caption" display="block" sx={{ mb: 2, fontStyle: 'italic', color: 'text.secondary' }}>
+                            Requesting as: {user?.name || user?.username} ({user?.email})
+                         </Typography>
+
+                        <FormControl fullWidth required margin="normal" size="small">
+                            <InputLabel id="service-select-label">Service Type *</InputLabel>
+                            <Select
+                                labelId="service-select-label"
+                                id="serviceId"
+                                name="serviceId" // Name matches state key
+                                value={formData.serviceId}
+                                label="Service Type *"
+                                onChange={handleFormInputChange}
+                            >
+                                <MenuItem value="" disabled><em>Select a service...</em></MenuItem>
+                                {services.map((service) => (
+                                    <MenuItem key={service._id} value={service._id}> {/* Use ID as value */}
+                                        {service.name} (Ksh {service.price?.toLocaleString()})
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mt: 2, mb: 1 }}>
+                                <DesktopDatePicker
+                                    label="Date *"
+                                    inputFormat="DD/MM/YYYY"
+                                    value={formData.date}
+                                    onChange={handleDateChange}
+                                    renderInput={(params) => <TextField {...params} fullWidth required size="small" />}
+                                    minDate={dayjs()} // Prevent selecting past dates
+                                />
+                                <TimePicker
+                                    label="Time *"
+                                    value={formData.time}
+                                    onChange={handleTimeChange}
+                                    renderInput={(params) => <TextField {...params} fullWidth required size="small" />}
+                                />
+                            </Stack>
+                        </LocalizationProvider>
+
+                        <TextField
+                            label="Location *"
+                            id="location"
+                            name="location" // Name matches state key
+                            value={formData.location}
+                            onChange={handleFormInputChange}
+                            fullWidth
+                            required
+                            margin="normal"
+                            size="small"
+                        />
+
+                        <TextField
+                            label="Description / Specific Instructions *"
+                            id="description"
+                            name="description" // Name matches state key
+                            value={formData.description}
+                            onChange={handleFormInputChange}
+                            fullWidth
+                            required
+                            margin="normal"
+                            multiline
+                            rows={4}
+                            size="small"
+                        />
+
+                        {/* File Attachments Input */}
+                         <Box sx={{ mt: 2, mb: 1, border: '1px dashed grey', p: 2, borderRadius: 1 }}>
+                            <Button
+                                component="label"
+                                variant="outlined"
+                                startIcon={<UploadFileIcon />}
+                                size="small"
+                                sx={{ mb: attachments.length > 0 ? 1 : 0 }}
+                            >
+                                Add Attachments (Optional)
+                                <input
+                                    type="file"
+                                    hidden
+                                    multiple
+                                    onChange={handleAttachmentChange}
+                                    ref={fileInputRef}
+                                    accept="image/*,application/pdf,.doc,.docx" // Specify accepted types
+                                />
+                            </Button>
+                             {/* List selected files */}
+                            {attachments.length > 0 && (
+                                <List dense disablePadding>
+                                    {attachments.map((file, index) => (
+                                        <ListItem
+                                            key={index}
+                                            disableGutters
+                                            secondaryAction={
+                                                <IconButton edge="end" aria-label="delete" size="small" onClick={() => handleRemoveAttachment(file.name)}>
+                                                    <DeleteIcon fontSize="small"/>
+                                                </IconButton>
+                                            }
+                                        >
+                                            <ListItemText primary={file.name} secondary={`${(file.size / 1024).toFixed(1)} KB`} />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            )}
+                        </Box>
+
+                        {/* Submit Button inside Form */}
+                        <DialogActions sx={{ px: 0, pt: 2 }}>
+                            <Button onClick={handleModalClose} color="secondary" disabled={isSubmitting}>
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                color="primary"
+                                disabled={isSubmitting}
+                                startIcon={isSubmitting ? <CircularProgress size={20} color="inherit"/> : null}
+                            >
+                                {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                            </Button>
+                        </DialogActions>
+                    </Box> {/* End Form */}
+                </DialogContent>
+                {/* Removed separate DialogActions as submit is inside the form */}
+            </Dialog>
+        </Container>
+    );
 };
 
 export default ServiceRequestForm;

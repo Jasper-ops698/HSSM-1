@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'; // Added useCallback
 import axios from 'axios';
 import {
   CircularProgress,
@@ -9,6 +9,15 @@ import {
   Modal,
   Card,
   Grid,
+  Table,            // Added for user table
+  TableBody,        // Added for user table
+  TableCell,        // Added for user table
+  TableContainer,   // Added for user table
+  TableHead,        // Added for user table
+  TableRow,         // Added for user table
+  Paper,            // Added for user table container
+  Alert,            // Added for feedback messages
+  Snackbar,         // Added for feedback messages
 } from '@mui/material';
 import { Pie, Bar } from 'react-chartjs-2';
 import { styled } from '@mui/material/styles';
@@ -34,6 +43,10 @@ const StyledCard = styled(Card)(({ theme }) => ({
   textAlign: 'center',
   padding: theme.spacing(2),
   backgroundColor: theme.palette.background.paper,
+  height: '100%', // Ensure cards have consistent height for alignment
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
@@ -47,6 +60,7 @@ const modalStyle = {
   left: '50%',
   transform: 'translate(-50%, -50%)',
   width: '80%',
+  maxWidth: '600px', // Added maxWidth for better modal scaling
   bgcolor: 'background.paper',
   border: '2px solid #000',
   boxShadow: 24,
@@ -57,7 +71,7 @@ const modalStyle = {
 };
 
 const AdminDashboard = () => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([]); // Will store detailed user list now
   const [requests, setRequests] = useState([]);
   const [services, setServices] = useState([]);
   const [hssmReports, setHssmReports] = useState([]);
@@ -70,77 +84,98 @@ const AdminDashboard = () => {
   const [totalReports, setTotalReports] = useState(0);
   const [selectedReport, setSelectedReport] = useState(null); // State for selected report
   const [showReportModal, setShowReportModal] = useState(false); // State for report modal
-  const itemsPerPage = 5;
+  const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'info' }); // For user action feedback
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL;
+  const itemsPerPage = 5; // For HSSM reports pagination
+
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000'; // Provide a fallback
 
   const getToken = () => localStorage.getItem('token');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = getToken();
-        if (!token) {
-          setError('Unauthorized! Please log in.');
-          return;
-        }
-
-        const headers = { Authorization: `Bearer ${token}` };
-
-        const { data } = await axios.get(`${API_BASE_URL}/api/admin/analytics`, { headers });
-        const reportsResponse = await axios.get(
-          `${API_BASE_URL}/api/admin/hssmProviderReports?page=${currentPage}&limit=${itemsPerPage}`,
-          { headers }
-        );
-
-        setUsers(data.users);
-        setRequests(data.requests);
-        setServices(data.services);
-        setHssmReports(reportsResponse.data.reports);
-        setTotalReports(reportsResponse.data.totalReports);
-
-        setUserRolesData({
-          labels: Object.keys(data.userRoles),
-          datasets: [
-            {
-              data: Object.values(data.userRoles),
-              backgroundColor: ['#ff0000', '#0000ff', '#008000', '#808080'],
-            },
-          ],
-        });
-
-        setRequestStatusesData({
-          labels: Object.keys(data.requestStatuses),
-          datasets: [
-            {
-              data: Object.values(data.requestStatuses),
-              backgroundColor: ['#ffcc00', '#36a2eb', '#ff8e72'],
-            },
-          ],
-        });
-
-        setServicesCountData({
-          labels: Object.keys(data.servicesCount),
-          datasets: [
-            {
-              label: 'Services Count',
-              data: Object.values(data.servicesCount),
-              backgroundColor: Object.keys(data.servicesCount).map(
-                (_, index) => `hsl(${index * 30}, 70%, 50%)`
-              ),
-            },
-          ],
-        });
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Error fetching data.');
-      } finally {
+  // Define fetchData using useCallback to prevent re-creation on every render
+  const fetchData = useCallback(async () => {
+    setIsLoading(true); // Start loading indicator
+    setError(''); // Clear previous errors
+    try {
+      const token = getToken();
+      if (!token) {
+        setError('Unauthorized! Please log in.');
         setIsLoading(false);
+        return;
       }
-    };
 
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Fetch analytics data (assuming it includes the user list)
+      const analyticsResponse = await axios.get(`${API_BASE_URL}/api/admin/analytics`, { headers });
+      const data = analyticsResponse.data;
+
+      // Fetch paginated HSSM reports
+      const reportsResponse = await axios.get(
+        `${API_BASE_URL}/api/admin/hssmProviderReports?page=${currentPage}&limit=${itemsPerPage}`,
+        { headers }
+      );
+
+      // --- Update State ---
+      // IMPORTANT: Ensure `data.users` is an array of user objects with id, username/email, role, isDisabled
+      setUsers(data.users || []);
+      setRequests(data.requests || []);
+      setServices(data.services || []);
+      setHssmReports(reportsResponse.data.reports || []);
+      setTotalReports(reportsResponse.data.totalReports || 0);
+
+      // Process data for charts
+      setUserRolesData({
+        labels: Object.keys(data.userRoles || {}),
+        datasets: [
+          {
+            data: Object.values(data.userRoles || {}),
+            backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff'], // Example colors
+            hoverOffset: 4
+          },
+        ],
+      });
+
+      setRequestStatusesData({
+        labels: Object.keys(data.requestStatuses || {}),
+        datasets: [
+          {
+            data: Object.values(data.requestStatuses || {}),
+            backgroundColor: ['#ffcc00', '#36a2eb', '#ff8e72', '#66ff99'], // Example colors
+            hoverOffset: 4
+          },
+        ],
+      });
+
+      setServicesCountData({
+        labels: Object.keys(data.servicesCount || {}),
+        datasets: [
+          {
+            label: 'Services Count',
+            data: Object.values(data.servicesCount || {}),
+            backgroundColor: Object.keys(data.servicesCount || {}).map(
+              (_, index) => `hsl(${(index * 60) % 360}, 70%, 60%)` // Generate distinct colors
+            ),
+            borderColor: Object.keys(data.servicesCount || {}).map(
+              (_, index) => `hsl(${(index * 60) % 360}, 70%, 40%)`
+            ),
+            borderWidth: 1,
+          },
+        ],
+      });
+
+    } catch (err) {
+      console.error('Error fetching data:', err.response?.data?.message || err.message);
+      setError(`Error fetching data: ${err.response?.data?.message || err.message}. Please try again.`);
+    } finally {
+      setIsLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, API_BASE_URL]); // Add API_BASE_URL to dependency array
+
+  useEffect(() => {
     fetchData();
-  }, [currentPage, API_BASE_URL]);
+  }, [fetchData]); // Depend on the memoized fetchData function
 
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
@@ -153,170 +188,344 @@ const AdminDashboard = () => {
 
   const handleDownloadReportPDF = (report) => {
     const doc = new jsPDF();
-
-    // Add content to the PDF
     doc.setFontSize(16);
     doc.text('HSSM Report Details', 10, 10);
     doc.setFontSize(12);
-    doc.text(`Provider Name: ${report.providerName}`, 10, 20);
-    doc.text(`Description: ${report.description}`, 10, 30);
+    doc.text(`Provider Name: ${report.providerName || 'N/A'}`, 10, 20);
+    doc.text(`Description: ${report.description || 'N/A'}`, 10, 30);
     doc.text(`Additional Details: ${report.details || 'No additional details provided.'}`, 10, 40);
-
-    // Save the PDF
-    doc.save(`${report.providerName}_Report.pdf`);
+    doc.text(`Reported At: ${new Date(report.createdAt).toLocaleString()}`, 10, 50);
+    doc.save(`${report.providerName || 'Report'}_${report.id}.pdf`);
   };
 
-  if (isLoading) {
+  // --- User Management Functions ---
+
+  const handleDisableUser = async (userId, isDisabled) => {
+    // Add confirmation
+    const action = isDisabled ? "enable" : "disable";
+    if (!window.confirm(`Are you sure you want to ${action} this user?`)) {
+        return;
+    }
+
+    const token = getToken();
+    if (!token) {
+        setFeedback({ open: true, message: 'Authentication error.', severity: 'error' });
+        return;
+    }
+
+    // Determine the correct endpoint or request body based on your API design
+    // Option 1: Separate endpoints
+    // const endpoint = isDisabled ? `/api/admin/users/${userId}/enable` : `/api/admin/users/${userId}/disable`;
+    // Option 2: Single endpoint with status in body
+    const endpoint = `${API_BASE_URL}/api/admin/users/${userId}/status`;
+    const method = 'patch'; // Or 'put'
+    const data = { isDisabled: !isDisabled }; // Send the *new* desired state
+
+    try {
+        await axios({
+            method: method,
+            url: endpoint,
+            headers: { Authorization: `Bearer ${token}` },
+            data: data // Use this if using Option 2
+        });
+        setFeedback({ open: true, message: `User ${action}d successfully.`, severity: 'success' });
+        // Refresh user data to reflect the change
+        setUsers(prevUsers =>
+            prevUsers.map(user =>
+                user.id === userId ? { ...user, isDisabled: !isDisabled } : user
+            )
+        );
+    } catch (err) {
+        console.error(`Error ${action}ing user:`, err.response?.data?.message || err.message);
+        setFeedback({ open: true, message: `Failed to ${action} user: ${err.response?.data?.message || err.message}`, severity: 'error' });
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+     // Add confirmation
+    if (!window.confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) {
+        return;
+    }
+
+    const token = getToken();
+    if (!token) {
+        setFeedback({ open: true, message: 'Authentication error.', severity: 'error' });
+        return;
+    }
+
+    try {
+        await axios.delete(`${API_BASE_URL}/api/admin/users/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        setFeedback({ open: true, message: 'User deleted successfully.', severity: 'success' });
+        // Refresh user data by removing the deleted user
+        setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+         // Optionally, re-fetch analytics if deletion affects counts significantly
+        // fetchData(); // Could cause a full refresh, filtering might be smoother
+    } catch (err) {
+        console.error('Error deleting user:', err.response?.data?.message || err.message);
+        setFeedback({ open: true, message: `Failed to delete user: ${err.response?.data?.message || err.message}`, severity: 'error' });
+    }
+  };
+
+  // --- End User Management Functions ---
+
+  const handleCloseFeedback = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setFeedback({ ...feedback, open: false });
+  };
+
+
+  if (isLoading && users.length === 0) { // Show loading only on initial load or full refresh
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-        <CircularProgress />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <CircularProgress size={60} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ textAlign: 'center', color: 'red' }}>
-        <Typography>{error}</Typography>
-        <StyledButton variant="contained" color="primary" onClick={() => window.location.reload()}>
-          Retry
-        </StyledButton>
+      <Box sx={{ textAlign: 'center', p: 3 }}>
+         <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+        <Button variant="contained" color="primary" onClick={fetchData}>
+          Retry Fetching Data
+        </Button>
       </Box>
     );
   }
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 'bold' }}>
+      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 'bold', mb: 3 }}>
         Admin Dashboard
       </Typography>
+
+      {/* Feedback Snackbar */}
+      <Snackbar
+        open={feedback.open}
+        autoHideDuration={6000}
+        onClose={handleCloseFeedback}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseFeedback} severity={feedback.severity} sx={{ width: '100%' }}>
+          {feedback.message}
+        </Alert>
+      </Snackbar>
 
       <Box sx={{ textAlign: 'center', mb: 4 }}>
         <StyledButton
           variant="contained"
           color="primary"
-          onClick={() => window.location.href = '/total'}
+          onClick={() => window.location.href = '/total'} // Consider using React Router's <Link> or navigate()
         >
-          Available Services
+          View Available Services Page
         </StyledButton>
       </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6} lg={4}>
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={4}>
           <StyledCard>
             <Typography variant="h6" color="textSecondary" gutterBottom>
               Total Users
             </Typography>
-            <Typography variant="h5">{users.length}</Typography>
+            <Typography variant="h4" component="p">{users.length}</Typography>
           </StyledCard>
         </Grid>
-        <Grid item xs={12} md={6} lg={4}>
+        <Grid item xs={12} sm={6} md={4}>
           <StyledCard>
             <Typography variant="h6" color="textSecondary" gutterBottom>
               Total Requests
             </Typography>
-            <Typography variant="h5">{requests.length}</Typography>
+             <Typography variant="h4" component="p">{requests.length}</Typography>
           </StyledCard>
         </Grid>
-        <Grid item xs={12} md={6} lg={4}>
+        <Grid item xs={12} sm={6} md={4}>
           <StyledCard>
             <Typography variant="h6" color="textSecondary" gutterBottom>
               Total Services
             </Typography>
-            <Typography variant="h5">{services.length}</Typography>
+             <Typography variant="h4" component="p">{services.length}</Typography>
           </StyledCard>
         </Grid>
       </Grid>
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
-        HSSM Reports
+      {/* Analytics Charts */}
+       <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 2, fontWeight: 'medium' }}>
+        Analytics Overview
       </Typography>
-      {hssmReports.length === 0 ? (
-        <Typography>No reports from HSSM providers found.</Typography>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+         <Grid item xs={12} md={6} lg={4}>
+           <StyledCard>
+             <Typography variant="h6" gutterBottom>User Roles Distribution</Typography>
+             {userRolesData.labels && userRolesData.labels.length > 0 ? (
+                <Pie data={userRolesData} options={{ responsive: true, maintainAspectRatio: false }} />
+             ) : (<Typography>No user role data available.</Typography>)}
+           </StyledCard>
+         </Grid>
+         <Grid item xs={12} md={6} lg={4}>
+           <StyledCard>
+             <Typography variant="h6" gutterBottom>Request Statuses</Typography>
+             {requestStatusesData.labels && requestStatusesData.labels.length > 0 ? (
+                <Pie data={requestStatusesData} options={{ responsive: true, maintainAspectRatio: false }} />
+              ) : (<Typography>No request status data available.</Typography>)}
+           </StyledCard>
+         </Grid>
+         <Grid item xs={12} md={6} lg={4}>
+           <StyledCard>
+             <Typography variant="h6" gutterBottom>Services Count by Category</Typography>
+              {servicesCountData.labels && servicesCountData.labels.length > 0 ? (
+                <Bar data={servicesCountData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+              ) : (<Typography>No services count data available.</Typography>)}
+           </StyledCard>
+         </Grid>
+      </Grid>
+
+       {/* User Management Table */}
+       <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 2, fontWeight: 'medium' }}>
+        User Management
+      </Typography>
+      {isLoading && users.length > 0 ? <CircularProgress sx={{ display: 'block', margin: 'auto' }} /> : null}
+      {users.length === 0 && !isLoading ? (
+         <Typography sx={{ textAlign: 'center', mt: 2 }}>No users found.</Typography>
+      ) : (
+        <Paper sx={{ width: '100%', overflow: 'hidden', mb: 4 }}>
+          <TableContainer sx={{ maxHeight: 440 }}>
+            <Table stickyHeader aria-label="user management table">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Username/Email</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Role</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow hover role="checkbox" tabIndex={-1} key={user.id || user._id /* Use _id if using MongoDB */}>
+                    <TableCell>{user.username || user.email || 'N/A'}</TableCell>
+                    <TableCell>{user.role}</TableCell>
+                    <TableCell>
+                        <Typography variant='body2' color={user.isDisabled ? 'error' : 'success'}>
+                            {user.isDisabled ? 'Disabled' : 'Active'}
+                        </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Button
+                        variant="outlined"
+                        color={user.isDisabled ? "success" : "warning"}
+                        size="small"
+                        onClick={() => handleDisableUser(user.id || user._id, user.isDisabled)}
+                        sx={{ mr: 1 }}
+                      >
+                        {user.isDisabled ? 'Enable' : 'Disable'}
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={() => handleDeleteUser(user.id || user._id)}
+                      >
+                        Delete
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
+
+
+      {/* HSSM Reports Section */}
+      <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 2, fontWeight: 'medium' }}>
+        HSSM Provider Reports
+      </Typography>
+      {isLoading && hssmReports.length === 0 ? <CircularProgress sx={{ display: 'block', margin: 'auto' }} /> : null}
+      {hssmReports.length === 0 && !isLoading ? (
+        <Typography sx={{ textAlign: 'center', mt: 2 }}>No reports from HSSM providers found.</Typography>
       ) : (
         <Box>
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
             {hssmReports.map((report) => (
-              <Grid item xs={12} md={6} lg={4} key={report.id}>
+              <Grid item xs={12} md={6} lg={4} key={report.id || report._id}>
                 <StyledCard>
-                  <Typography variant="h6">{report.providerName}</Typography>
-                  <Typography variant="body2">{report.description}</Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                    <StyledButton
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" gutterBottom noWrap title={report.providerName}>
+                      {report.providerName || 'Unknown Provider'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 2 }}>
+                      {report.description ? (report.description.length > 100 ? report.description.substring(0, 97) + '...' : report.description) : 'No description.'}
+                    </Typography>
+                     <Typography variant="caption" display="block" color="textSecondary">
+                        Reported: {new Date(report.createdAt).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 2, width: '100%' }}>
+                    <Button // Changed from StyledButton for specific context
                       variant="contained"
+                      size="small" // Make buttons smaller
                       color="secondary"
                       onClick={() => handleViewReport(report)}
                     >
-                      View Details
-                    </StyledButton>
-                    <StyledButton
+                      View
+                    </Button>
+                    <Button // Changed from StyledButton
                       variant="contained"
+                       size="small" // Make buttons smaller
                       color="success"
                       onClick={() => handleDownloadReportPDF(report)}
                     >
-                      Download PDF
-                    </StyledButton>
+                      PDF
+                    </Button>
                   </Box>
                 </StyledCard>
               </Grid>
             ))}
           </Grid>
-          <Pagination
-            count={Math.ceil(totalReports / itemsPerPage)}
-            page={currentPage}
-            onChange={handlePageChange}
-            sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}
-          />
+          {totalReports > itemsPerPage && (
+            <Pagination
+                count={Math.ceil(totalReports / itemsPerPage)}
+                page={currentPage}
+                onChange={handlePageChange}
+                color="primary"
+                sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}
+            />
+           )}
         </Box>
       )}
 
-      <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
-        Analytics
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <StyledCard>
-            <Typography variant="h6">User Roles</Typography>
-            <Pie data={userRolesData} />
-          </StyledCard>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <StyledCard>
-            <Typography variant="h6">Request Statuses</Typography>
-            <Pie data={requestStatusesData} />
-          </StyledCard>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <StyledCard>
-            <Typography variant="h6">Services Count</Typography>
-            <Bar data={servicesCountData} options={{ responsive: true }} />
-          </StyledCard>
-        </Grid>
-      </Grid>
-
-      {/* Report Modal */}
+      {/* Report Details Modal */}
       <Modal open={showReportModal} onClose={() => setShowReportModal(false)}>
         <Box sx={modalStyle}>
-          <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', fontWeight: 'bold' }}>
+          <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', fontWeight: 'bold', mb: 2 }}>
             Report Details
           </Typography>
           {selectedReport && (
             <Box>
               <Typography variant="h6">Provider Name:</Typography>
-              <Typography>{selectedReport.providerName}</Typography>
+              <Typography gutterBottom>{selectedReport.providerName || 'N/A'}</Typography>
               <Typography variant="h6" sx={{ mt: 2 }}>
                 Description:
               </Typography>
-              <Typography>{selectedReport.description}</Typography>
+              <Typography gutterBottom>{selectedReport.description || 'N/A'}</Typography>
               <Typography variant="h6" sx={{ mt: 2 }}>
                 Additional Details:
               </Typography>
-              <Typography>{selectedReport.details || 'No additional details provided.'}</Typography>
+              <Typography gutterBottom>{selectedReport.details || 'No additional details provided.'}</Typography>
+               <Typography variant="h6" sx={{ mt: 2 }}>
+                Reported At:
+              </Typography>
+              <Typography>{new Date(selectedReport.createdAt).toLocaleString()}</Typography>
             </Box>
           )}
           <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Button
-              variant="contained"
+              variant="outlined" // Changed for contrast
               color="primary"
               onClick={() => setShowReportModal(false)}
               sx={{ mr: 2 }}

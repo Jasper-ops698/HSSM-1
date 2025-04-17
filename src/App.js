@@ -3,9 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import Navbar from './components/Navbar';
 import Breadcrumbs from './components/Breadcrumbs';
-import AuthProvider from './context/AuthContext'; 
-import PrivateRoute from './components/PrivateRoute';
-import ErrorBoundary from './components/ErrorBoundary'; // New error boundary component
+import AuthProvider from './context/AuthContext';
+import ProtectedRoute from './components/PrivateRoute'; 
+import ErrorBoundary from './components/ErrorBoundary';
 import Loading from './components/Loading'; // Fallback loading component
 
 // Lazy-loaded components
@@ -19,19 +19,21 @@ const AdminDashboard = React.lazy(() => import('./pages/Admin'));
 const Hssm = React.lazy(() => import('./pages/HSSM'));
 const NotFound = React.lazy(() => import('../src/NotFound')); // 404 Page
 const Total = React.lazy(() => import('./pages/Total'));
+// Add an Unauthorized page component (you'll need to create this simple page)
+const UnauthorizedPage = React.lazy(() => import('./pages/UnauthorizedPage')); // <--- Create this component
 
-// Updated MUI theme
+// Updated MUI theme (keep your theme)
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#0052cc', // Modern vibrant blue
+      main: '#0052cc',
     },
     secondary: {
-      main: '#ff4081', // Trendy magenta
+      main: '#ff4081',
     },
   },
   typography: {
-    fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif", // Default modern typography
+    fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
   },
 });
 
@@ -40,47 +42,50 @@ const App = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
+        {/* AuthProvider should wrap everything related to auth/routing */}
         <AuthProvider>
           <Navbar />
           <Breadcrumbs language="en" />
           <ErrorBoundary>
+            {/* Suspense wraps all lazy-loaded routes */}
             <Suspense fallback={<Loading />}>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
-                <Route path="/service" element={<ServiceRequestForm />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/about" element={<Footer />} />
                 <Route path="/total" element={<Total />} />
+                {/* Route for unauthorized access */}
+                <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-                {/* Protected Routes */}
-                <Route 
-                  path="/admin" 
-                  element={
-                    <PrivateRoute role="admin">
-                      <AdminDashboard />
-                    </PrivateRoute>
-                  }
-                />
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <PrivateRoute role="service-provider">
-                      <Dashboard />
-                    </PrivateRoute>
-                  }
-                />
-                <Route 
-                  path="/hssm" 
-                  element={
-                    <PrivateRoute role="HSSM-provider">
-                      <Hssm />
-                    </PrivateRoute>
-                  }
-                />
+                {/* --- Protected Routes --- */}
 
-                {/* Catch-All Route */}
+                {/* Group 1: Routes requiring login, but no specific role (like individual users) */}
+                {/* The ProtectedRoute component without 'allowedRoles' just checks for login */}
+                <Route element={<ProtectedRoute />}>
+                  {/* Based on your Login.js, /service seems intended for logged-in users */}
+                  <Route path="/service" element={<ServiceRequestForm />} />
+                  {/* Add other general authenticated routes here if needed */}
+                </Route>
+
+                {/* Group 2: Routes requiring 'admin' role */}
+                {/* Pass the required roles as an array to 'allowedRoles' */}
+                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                  <Route path="/admin" element={<AdminDashboard />} />
+                </Route>
+
+                {/* Group 3: Routes requiring 'service-provider' role */}
+                <Route element={<ProtectedRoute allowedRoles={['service-provider']} />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                </Route>
+
+                {/* Group 4: Routes requiring 'HSSM-provider' role */}
+                <Route element={<ProtectedRoute allowedRoles={['HSSM-provider']} />}>
+                  <Route path="/hssm" element={<Hssm />} />
+                </Route>
+
+                {/* Catch-All Route for 404 Not Found - Must be last */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

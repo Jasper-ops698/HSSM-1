@@ -3,11 +3,35 @@ import { Button, Box, Typography, TextField, Paper } from '@mui/material';
 import { Link } from 'react-router-dom';
 import Footer from './AboutPage';
 
+const API_BASE_URL = 'http:/localhost:4000' || 'https://hssm-2.onrender.com';
+
 const CustomChat = () => {
   const [messages, setMessages] = useState([{ sender: 'bot', text: 'Hello! How can I assist you today?' }]);
   const [input, setInput] = useState('');
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (message) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Message sent successfully:', data);
+    } catch (error) {
+      console.error('Error sending message:', error.message);
+      alert('Failed to send message. Please check your connection or try again later.');
+    }
+  };
+
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     // Add user message to the chat
@@ -15,22 +39,11 @@ const CustomChat = () => {
 
     try {
       // Send the message to the backend
-      const response = await fetch('http://localhost:5000/api/gemini/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input }),
-      });
+      await handleSendMessage(input);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Add bot response to the chat
-        setMessages((prev) => [...prev, { sender: 'bot', text: data.reply }]);
-      } else {
-        setMessages((prev) => [...prev, { sender: 'bot', text: 'Sorry, something went wrong.' }]);
-      }
+      // Add bot response to the chat
+      setMessages((prev) => [...prev, { sender: 'bot', text: 'Message sent successfully.' }]);
     } catch (error) {
-      console.error('Error sending message:', error);
       setMessages((prev) => [...prev, { sender: 'bot', text: 'Error connecting to the server.' }]);
     }
 
@@ -63,7 +76,7 @@ const CustomChat = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
-        <Button variant="contained" color="primary" onClick={handleSendMessage}>
+        <Button variant="contained" color="primary" onClick={handleSend}>
           Send
         </Button>
       </Box>

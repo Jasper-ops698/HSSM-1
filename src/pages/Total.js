@@ -21,6 +21,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // Icon for back butt
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000'; // Example fallback
 const FALLBACK_IMAGE_URL = `${API_BASE_URL}/uploads/placeholder-image.png`;
 
+const renderImageUrl = (imagePath) => {
+    if (!imagePath) return FALLBACK_IMAGE_URL;
+    if (imagePath.startsWith('data:image')) return imagePath;
+    const cleanPath = imagePath.replace(/^uploads\/+/, '');
+    return `${API_BASE_URL}/uploads/${cleanPath}`;
+};
+
 const Total = () => {
     const [services, setServices] = useState([]);
     const [filteredServices, setFilteredServices] = useState([]);
@@ -164,42 +171,33 @@ const Total = () => {
                         <Grid container spacing={3}>
                             {filteredServices.map((service) => (
                                 <Grid item xs={12} sm={6} md={4} key={service._id}>
-                                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}> {/* Ensure cards fill height and layout content */}
-                                        {/* Conditionally render CardMedia */}
-                                        {service.image && (
-                                            <CardMedia
-                                                component="img"
-                                                height="200"
-                                                // Handle both base64 and URL images
-                                                image={service.image.startsWith('data:image') 
-                                                    ? service.image 
-                                                    : `${API_BASE_URL}/uploads/${service.image}`}
-                                                alt={service.name}
-                                                sx={{ objectFit: 'cover' }}
-                                                onError={(e) => {
-                                                    e.currentTarget.src = FALLBACK_IMAGE_URL;
-                                                }}
-                                            />
-                                        )}
-                                        {/* Fallback placeholder */}
-                                        {!service.image && (
-                                            <Box sx={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f0f0' }}>
-                                                <Typography color="text.secondary">No Image</Typography>
-                                            </Box>
-                                        )}
-                                        <CardContent sx={{ flexGrow: 1 }}> {/* Allow content to take remaining space */}
-                                            <Typography gutterBottom variant="h6" component="div" sx={{ fontWeight: 'medium' }}>
+                                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                        <CardMedia
+                                            component="img"
+                                            height="200"
+                                            image={renderImageUrl(service.image || service.imagePath)}
+                                            alt={service.name}
+                                            sx={{ 
+                                                objectFit: 'cover',
+                                                backgroundColor: 'background.paper',
+                                            }}
+                                            loading="lazy"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = FALLBACK_IMAGE_URL;
+                                            }}
+                                        />
+                                        <CardContent sx={{ flexGrow: 1 }}>
+                                            <Typography gutterBottom variant="h6" component="div" sx={{ fontWeight: 'medium' }} noWrap title={service.name}>
                                                 {service.name || 'Unnamed Service'}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                                 {service.description || 'No description available.'}
                                             </Typography>
                                             <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-                                                Ksh {service.price != null ? service.price.toLocaleString() : 'N/A'} {/* Format price */}
+                                                Ksh {service.price != null ? service.price.toLocaleString() : 'N/A'}
                                             </Typography>
                                         </CardContent>
-                                        {/* Add CardActions here if you need buttons like "Book Now" or "Details" */}
-                                        {/* <CardActions> <Button size="small">Learn More</Button> </CardActions> */}
                                     </Card>
                                 </Grid>
                             ))}

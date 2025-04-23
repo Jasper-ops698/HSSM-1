@@ -228,7 +228,8 @@ const ServiceRequestForm = () => {
     const renderImageUrl = (imagePath) => {
         if (!imagePath) return FALLBACK_IMAGE_URL;
         if (imagePath.startsWith('data:image')) return imagePath;
-        return `${API_BASE_URL}/uploads/${imagePath}`;
+        const cleanPath = imagePath.startsWith('uploads/') ? imagePath.slice(8) : imagePath;
+        return `${API_BASE_URL}/uploads/${cleanPath}`;
     };
 
     // --- Render ---
@@ -292,11 +293,18 @@ const ServiceRequestForm = () => {
                             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                                 <CardMedia
                                     component="img"
-                                    height="180" // Adjusted height
-                                    image={renderImageUrl(service.imagePath)}
+                                    height="180"
+                                    image={renderImageUrl(service.image)}
                                     alt={service.name}
-                                    onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE_URL; }}
-                                    sx={{ objectFit: 'cover' }}
+                                    loading="lazy"
+                                    sx={{ 
+                                        objectFit: 'cover',
+                                        backgroundColor: 'background.paper'
+                                    }}
+                                    onError={(e) => {
+                                        e.target.onerror = null; // Prevent infinite error loop
+                                        e.target.src = FALLBACK_IMAGE_URL;
+                                    }}
                                 />
                                 <CardContent sx={{ flexGrow: 1 }}>
                                     <Typography gutterBottom variant="h6" component="div" noWrap title={service.name}>

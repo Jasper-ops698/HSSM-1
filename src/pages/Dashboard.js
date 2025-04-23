@@ -253,10 +253,12 @@ const Dashboard = () => {
     );
 
     const renderImageUrl = (imagePath) => {
-        // Construct URL assuming imagePath is just the filename
-        // and the server serves '/uploads' statically
-        return imagePath ? `${API_BASE_URL}/uploads/${imagePath}` : FALLBACK_IMAGE_URL;
-    }
+        if (!imagePath) return FALLBACK_IMAGE_URL;
+        if (imagePath.startsWith('data:image')) return imagePath;
+        // Remove any duplicate 'uploads/' in the path
+        const cleanPath = imagePath.replace(/^uploads\/+/, '');
+        return `${API_BASE_URL}/uploads/${cleanPath}`;
+    };
 
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}> {/* Increased max width and padding */}
@@ -324,12 +326,17 @@ const Dashboard = () => {
                                                 <CardMedia
                                                     component="img"
                                                     height="140"
-                                                    image={request.service?.image?.startsWith('data:image') 
-                                                        ? request.service?.image 
-                                                        : `${API_BASE_URL}/uploads/${request.service?.imagePath}`} // Use service image path if available
+                                                    image={request.service?.image ? renderImageUrl(request.service.image) : FALLBACK_IMAGE_URL}
                                                     alt={`Image for ${request.service?.name || 'service'}`}
-                                                    onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE_URL; }}
-                                                    sx={{ objectFit: 'cover' }}
+                                                    sx={{ 
+                                                        objectFit: 'cover',
+                                                        backgroundColor: 'background.paper',
+                                                    }}
+                                                    loading="lazy"
+                                                    onError={(e) => {
+                                                        e.target.onerror = null; // Prevent infinite error loop
+                                                        e.target.src = FALLBACK_IMAGE_URL;
+                                                    }}
                                                 />
                                                 <CardContent>
                                                     <Typography variant="h6" component="div" noWrap title={request.service?.name}>
@@ -395,12 +402,15 @@ const Dashboard = () => {
                                                      <CardMedia
                                                         component="img"
                                                         height="200"
-                                                        image={service.image?.startsWith('data:image') 
-                                                            ? service.image 
-                                                            : `${API_BASE_URL}/uploads/${service.imagePath}`} // Use helper function
+                                                        image={renderImageUrl(service.image || service.imagePath)}
                                                         alt={service.name}
-                                                        sx={{ objectFit: 'cover' }}
+                                                        sx={{ 
+                                                            objectFit: 'cover',
+                                                            backgroundColor: 'background.paper',
+                                                        }}
+                                                        loading="lazy"
                                                         onError={(e) => {
+                                                            e.target.onerror = null; // Prevent infinite error loop
                                                             e.currentTarget.src = FALLBACK_IMAGE_URL;
                                                         }}
                                                     />
@@ -442,7 +452,7 @@ const Dashboard = () => {
                         <Box sx={{ mb: 2, textAlign: 'center' }}>
                              <Typography variant="caption" display="block" gutterBottom>Current Image:</Typography>
                              <img
-                                src={renderImageUrl(serviceDetails.imagePath)}
+                                src={renderImageUrl(serviceDetails.image || serviceDetails.imagePath)}
                                 alt="Current service"
                                 style={{ maxHeight: '150px', maxWidth: '100%', borderRadius: '4px' }}
                                 onError={(e) => { e.target.style.display='none'; }} // Hide if broken

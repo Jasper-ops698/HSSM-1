@@ -15,9 +15,6 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 const COMMON_TOPICS = [
   "Tell me about your services",
   "How can I book a service?",
-  "What are your working hours?",
-  "How do I contact support?",
-  "What payment methods do you accept?"
 ];
 
 const CustomChat = () => {

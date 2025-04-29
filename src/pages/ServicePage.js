@@ -121,7 +121,7 @@ const ServiceRequestForm = () => {
 
     // --- Handlers ---
     const handleModalOpen = (serviceId = '') => {
-        // Reset form, optionally pre-select service if triggered from a card
+        console.log('Opening modal...');  // Add logging
         setFormData({
             serviceId: serviceId,
             date: null,
@@ -132,9 +132,11 @@ const ServiceRequestForm = () => {
         setAttachments([]); // Clear attachments when opening modal
         setError(null); // Clear previous form errors
         setModalOpen(true);
+        console.log('Modal state set to:', true);  // Add logging
     };
 
     const handleModalClose = () => {
+        console.log('Closing modal...');  // Add logging
         setModalOpen(false);
         // Consider resetting form state after close animation if needed
     };
@@ -329,8 +331,16 @@ const ServiceRequestForm = () => {
             )}
 
             {/* Service Request Modal */}
-            <Dialog open={isModalOpen} onClose={handleModalClose} fullWidth maxWidth="sm">
-                <DialogTitle>Request a Service</DialogTitle>
+            <Dialog 
+                open={isModalOpen} 
+                onClose={handleModalClose} 
+                fullWidth 
+                maxWidth="sm"
+                keepMounted
+                aria-labelledby="service-request-dialog"
+                disableEscapeKeyDown
+            >
+                <DialogTitle id="service-request-dialog">Request a Service</DialogTitle>
                 <DialogContent>
                     {/* Show Loading/Error specific to service list within modal if needed */}
                     {/* {isLoadingServices && <CircularProgress />} */}

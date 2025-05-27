@@ -282,23 +282,81 @@ const AdminDashboard = () => {
       <p>Total Requests: {requests.length}</p>
       <p>Total Services: {services.length}</p>
 
-      <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-        <div style={{ width: '30%' }}>
-          <h3>User Roles</h3>
-          <Pie data={userRolesData} />
-        </div>
+      <div style={{ 
+  display: 'flex', 
+  justifyContent: 'space-between', 
+  gap: '20px', 
+  flexWrap: 'wrap', 
+  marginTop: '20px',
+  padding: '10px'
+}}>
+  <div style={{ flex: '1 1 30%', minWidth: '250px', padding: '10px' }}>
+    <h3>User Roles</h3>
+    <Pie 
+      data={userRolesData} 
+      options={{
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: 20,
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+          },
+        },
+      }} 
+    />
+  </div>
 
-        <div style={{ width: '30%' }}>
-          <h3>Request Statuses</h3>
-          <Pie data={requestStatusesData} />
-        </div>
+  <div style={{ flex: '1 1 30%', minWidth: '250px', padding: '10px' }}>
+    <h3>Request Statuses</h3>
+    <Pie 
+      data={requestStatusesData} 
+      options={{
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: 20,
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+          },
+        },
+      }} 
+    />
+  </div>
 
-        <div style={{ width: '30%' }}>
-          <h3>Services Count</h3>
-          <Bar data={servicesCountData} options={{ responsive: true }} />
-        </div>
-      </div>
-    </div>
+  <div style={{ flex: '1 1 30%', minWidth: '250px', padding: '10px' }}>
+    <h3>Services Count</h3>
+    <Bar 
+      data={servicesCountData} 
+      options={{
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: 20,
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+          },
+        },
+        scales: {
+          x: {
+            ticks: {
+              autoSkip: false,
+              maxRotation: 45,
+              minRotation: 45
+            }
+          }
+        }
+      }} 
+    />
+  </div>
+</div>
+
   );
 };
 

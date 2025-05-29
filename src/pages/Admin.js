@@ -36,17 +36,18 @@ import jsPDF from 'jspdf'; // Import jsPDF for PDF generation
 ChartJS.register(Title, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ArcElement);
 
 // Styled components for better appearance
-const StyledCard = styled(Card)(({ theme }) => ({
+const StyledCard = styled(Card)(({ theme, $empty }) => ({
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius,
   boxShadow: theme.shadows[2],
   textAlign: 'center',
-  padding: theme.spacing(2),
+  padding: $empty ? theme.spacing(1) : theme.spacing(2),
   backgroundColor: theme.palette.background.paper,
-  height: '100%', // Ensure cards have consistent height for alignment
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'space-between',
+  minHeight: 0, // For flexbox edge cases
+  ...( !$empty ? { minHeight: 320 } : {} ), // Only set minHeight if not empty
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
@@ -359,27 +360,27 @@ const AdminDashboard = () => {
       </Typography>
       <Grid container spacing={3} sx={{ mb: 4 }}>
          <Grid item xs={12} md={6} lg={4}>
-           <StyledCard>
+           <StyledCard $empty={!(userRolesData.labels && userRolesData.labels.length > 0)}>
              <Typography variant="h6" gutterBottom>User Roles Distribution</Typography>
              {userRolesData.labels && userRolesData.labels.length > 0 ? (
                 <Pie data={userRolesData} options={{ responsive: true, maintainAspectRatio: false }} />
-             ) : (<Typography>No user role data available.</Typography>)}
+             ) : (<Typography sx={{ p: 0.5 }}>No user role data available.</Typography>)}
            </StyledCard>
          </Grid>
          <Grid item xs={12} md={6} lg={4}>
-           <StyledCard>
+           <StyledCard $empty={!(requestStatusesData.labels && requestStatusesData.labels.length > 0)}>
              <Typography variant="h6" gutterBottom>Request Statuses</Typography>
              {requestStatusesData.labels && requestStatusesData.labels.length > 0 ? (
                 <Pie data={requestStatusesData} options={{ responsive: true, maintainAspectRatio: false }} />
-              ) : (<Typography>No request status data available.</Typography>)}
+              ) : (<Typography sx={{ p: 0.5 }}>No request status data available.</Typography>)}
            </StyledCard>
          </Grid>
          <Grid item xs={12} md={6} lg={4}>
-           <StyledCard>
+           <StyledCard $empty={!(servicesCountData.labels && servicesCountData.labels.length > 0)}>
              <Typography variant="h6" gutterBottom>Services Count by Category</Typography>
               {servicesCountData.labels && servicesCountData.labels.length > 0 ? (
                 <Bar data={servicesCountData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
-              ) : (<Typography>No services count data available.</Typography>)}
+              ) : (<Typography sx={{ p: 0.5 }}>No services count data available.</Typography>)}
            </StyledCard>
          </Grid>
       </Grid>

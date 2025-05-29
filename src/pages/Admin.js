@@ -46,8 +46,7 @@ const StyledCard = styled(Card)(({ theme, $empty }) => ({
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'space-between',
-  minHeight: 0, // For flexbox edge cases
-  ...( !$empty ? { minHeight: 320 } : {} ), // Only set minHeight if not empty
+  // minHeight removed to allow card to fit content
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({

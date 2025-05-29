@@ -19,7 +19,7 @@ import {
   Alert,            // Added for feedback messages
   Snackbar,         // Added for feedback messages
 } from '@mui/material';
-import { Pie, Bar } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import { styled } from '@mui/material/styles';
 import {
   Chart as ChartJS,
@@ -378,8 +378,27 @@ const AdminDashboard = () => {
            <StyledCard $empty={!(servicesCountData.labels && servicesCountData.labels.length > 0)}>
              <Typography variant="h6" gutterBottom>Services Count by Category</Typography>
               {servicesCountData.labels && servicesCountData.labels.length > 0 ? (
-                <Bar data={servicesCountData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
-              ) : (<Typography sx={{ p: 0.5 }}>No services count data available.</Typography>)}
+                <Box sx={{ width: '100%', mt: 1 }}>
+                  <Table size="small" aria-label="services count table">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Count</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {servicesCountData.labels.map((label, idx) => (
+                        <TableRow key={label}>
+                          <TableCell>{label}</TableCell>
+                          <TableCell>{servicesCountData.datasets[0].data[idx]}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Box>
+              ) : (
+                <Typography sx={{ p: 0.5 }}>No services count data available.</Typography>
+              )}
            </StyledCard>
          </Grid>
       </Grid>

@@ -19,7 +19,6 @@ import {
   Alert,            // Added for feedback messages
   Snackbar,         // Added for feedback messages
 } from '@mui/material';
-import { Pie } from 'react-chartjs-2';
 import { styled } from '@mui/material/styles';
 import {
   Chart as ChartJS,
@@ -204,40 +203,38 @@ const AdminDashboard = () => {
     // Add confirmation
     const action = isDisabled ? "enable" : "disable";
     if (!window.confirm(`Are you sure you want to ${action} this user?`)) {
-        return;
+      return;
     }
 
     const token = getToken();
     if (!token) {
-        setFeedback({ open: true, message: 'Authentication error.', severity: 'error' });
-        return;
+      setFeedback({ open: true, message: 'Authentication error.', severity: 'error' });
+      return;
     }
 
-    // Determine the correct endpoint or request body based on your API design
-    // Option 1: Separate endpoints
-    // const endpoint = isDisabled ? `/api/admin/users/${userId}/enable` : `/api/admin/users/${userId}/disable`;
-    // Option 2: Single endpoint with status in body
     const endpoint = `${API_BASE_URL}/api/admin/users/${userId}/status`;
-    const method = 'patch'; // Or 'put'
-    const data = { isDisabled: !isDisabled }; // Send the *new* desired state
+    const method = 'patch';
+    const data = { isDisabled: !isDisabled }; // Toggle the state
 
     try {
-        await axios({
-            method: method,
-            url: endpoint,
-            headers: { Authorization: `Bearer ${token}` },
-            data: data // Use this if using Option 2
-        });
-        setFeedback({ open: true, message: `User ${action}d successfully.`, severity: 'success' });
-        // Refresh user data to reflect the change
-        setUsers(prevUsers =>
-            prevUsers.map(user =>
-                user.id === userId ? { ...user, isDisabled: !isDisabled } : user
-            )
-        );
+      await axios({
+        method: method,
+        url: endpoint,
+        headers: { Authorization: `Bearer ${token}` },
+        data: data
+      });
+      setFeedback({ open: true, message: `User ${action}d successfully.`, severity: 'success' });
+      // Update the user in the list immediately
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === userId || user._id === userId
+            ? { ...user, isDisabled: !isDisabled }
+            : user
+        )
+      );
     } catch (err) {
-        console.error(`Error ${action}ing user:`, err.response?.data?.message || err.message);
-        setFeedback({ open: true, message: `Failed to ${action} user: ${err.response?.data?.message || err.message}`, severity: 'error' });
+      console.error(`Error ${action}ing user:`, err.response?.data?.message || err.message);
+      setFeedback({ open: true, message: `Failed to ${action} user: ${err.response?.data?.message || err.message}`, severity: 'error' });
     }
   };
 
@@ -362,16 +359,54 @@ const AdminDashboard = () => {
            <StyledCard $empty={!(userRolesData.labels && userRolesData.labels.length > 0)}>
              <Typography variant="h6" gutterBottom>User Roles Distribution</Typography>
              {userRolesData.labels && userRolesData.labels.length > 0 ? (
-                <Pie data={userRolesData} options={{ responsive: true, maintainAspectRatio: false }} />
-             ) : (<Typography sx={{ p: 0.5 }}>No user role data available.</Typography>)}
+               <Box sx={{ width: '100%', mt: 1 }}>
+                 <Table size="small" aria-label="user roles table">
+                   <TableHead>
+                     <TableRow>
+                       <TableCell sx={{ fontWeight: 'bold' }}>Role</TableCell>
+                       <TableCell sx={{ fontWeight: 'bold' }}>Count</TableCell>
+                     </TableRow>
+                   </TableHead>
+                   <TableBody>
+                     {userRolesData.labels.map((label, idx) => (
+                       <TableRow key={label}>
+                         <TableCell>{label}</TableCell>
+                         <TableCell>{userRolesData.datasets[0].data[idx]}</TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+               </Box>
+             ) : (
+               <Typography sx={{ p: 0.5 }}>No user role data available.</Typography>
+             )}
            </StyledCard>
          </Grid>
          <Grid item xs={12} md={6} lg={4}>
            <StyledCard $empty={!(requestStatusesData.labels && requestStatusesData.labels.length > 0)}>
              <Typography variant="h6" gutterBottom>Request Statuses</Typography>
              {requestStatusesData.labels && requestStatusesData.labels.length > 0 ? (
-                <Pie data={requestStatusesData} options={{ responsive: true, maintainAspectRatio: false }} />
-              ) : (<Typography sx={{ p: 0.5 }}>No request status data available.</Typography>)}
+               <Box sx={{ width: '100%', mt: 1 }}>
+                 <Table size="small" aria-label="request statuses table">
+                   <TableHead>
+                     <TableRow>
+                       <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                       <TableCell sx={{ fontWeight: 'bold' }}>Count</TableCell>
+                     </TableRow>
+                   </TableHead>
+                   <TableBody>
+                     {requestStatusesData.labels.map((label, idx) => (
+                       <TableRow key={label}>
+                         <TableCell>{label}</TableCell>
+                         <TableCell>{requestStatusesData.datasets[0].data[idx]}</TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+               </Box>
+             ) : (
+               <Typography sx={{ p: 0.5 }}>No request status data available.</Typography>
+             )}
            </StyledCard>
          </Grid>
          <Grid item xs={12} md={6} lg={4}>

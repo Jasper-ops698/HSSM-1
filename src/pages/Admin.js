@@ -116,11 +116,15 @@ const AdminDashboard = () => {
       );
 
       // --- Update State ---
-      // IMPORTANT: Ensure `data.users` is an array of user objects with id, username/email, role, isDisabled
+      // Normalize report IDs to always have 'id' field
+      const normalizedReports = (reportsResponse.data.reports || []).map(r => ({
+        ...r,
+        id: r.id || r._id // Ensure every report has an 'id' field
+      }));
       setUsers(data.users || []);
       setRequests(data.requests || []);
       setServices(data.services || []);
-      setHssmReports(reportsResponse.data.reports || []);
+      setHssmReports(normalizedReports);
       setTotalReports(reportsResponse.data.totalReports || 0);
 
       // Process data for charts

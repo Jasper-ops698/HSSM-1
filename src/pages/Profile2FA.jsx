@@ -59,12 +59,35 @@ const Profile2FA = () => {
     }
   };
 
+  const handleDisable = async () => {
+    setLoading(true);
+    setFeedback('');
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_BASE_URL}/api/2fa/disable`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setEnabled(false);
+      setQr('');
+      setSecret('');
+      setCode('');
+      setFeedback('2FA disabled successfully.');
+    } catch (e) {
+      setFeedback(e.response?.data?.message || 'Failed to disable 2FA.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box sx={{ maxWidth: 400, margin: 'auto', mt: 8, p: 3, border: '1px solid #ccc', borderRadius: 2, boxShadow: 3 }}>
       <Typography variant="h5" gutterBottom>Two-Factor Authentication (2FA)</Typography>
       {loading && <CircularProgress />}
       {enabled ? (
-        <Typography color="success.main">2FA is enabled for your account.</Typography>
+        <>
+          <Typography color="success.main">2FA is enabled for your account.</Typography>
+          <Button variant="contained" color="error" onClick={handleDisable} disabled={loading} fullWidth sx={{ mt: 2 }}>
+            Disable 2FA
+          </Button>
+        </>
       ) : (
         <>
           {qr ? (

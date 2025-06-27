@@ -35,6 +35,11 @@ const Navbar = () => {
     { text: 'Login', path: '/login' },
   ];
 
+  // Add 2FA Settings link for logged-in users
+  const authMenuItems = [
+    { text: '2FA Settings', path: '/profile-2fa' },
+  ];
+
   return (
     <AppBar position="sticky">
       <Toolbar>
@@ -46,6 +51,17 @@ const Navbar = () => {
         {/* Desktop Nav Links */}
         <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
           {menuItems.map((item) => (
+            <Button
+              key={item.text}
+              color="inherit"
+              component={Link}
+              to={item.path}
+              sx={{ textDecoration: 'none' }}
+            >
+              {item.text}
+            </Button>
+          ))}
+          {user && authMenuItems.map((item) => (
             <Button
               key={item.text}
               color="inherit"
@@ -83,6 +99,17 @@ const Navbar = () => {
         >
           <List>
             {menuItems.map((item) => (
+              <ListItem
+                button
+                key={item.text}
+                component={Link}
+                to={item.path}
+                onClick={handleMenuClose}
+              >
+                <ListItemText primary={item.text} />
+              </ListItem>
+            ))}
+            {user && authMenuItems.map((item) => (
               <ListItem
                 button
                 key={item.text}

@@ -267,6 +267,33 @@ const AdminDashboard = () => {
 
   // --- End User Management Functions ---
 
+  // --- HSSM Report Management ---
+  const handleDeleteReport = async (reportId) => {
+    if (!window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+      return;
+    }
+    const token = getToken();
+    if (!token) {
+      setFeedback({ open: true, message: 'Authentication error.', severity: 'error' });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await axios.delete(`${API_BASE_URL}/api/admin/hssmProviderReports/${reportId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFeedback({ open: true, message: 'Report deleted successfully.', severity: 'success' });
+      setHssmReports((prev) => prev.filter((r) => (r.id || r._id) !== reportId));
+      setTotalReports((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Error deleting report:', err.response?.data?.message || err.message);
+      setFeedback({ open: true, message: `Failed to delete report: ${err.response?.data?.message || err.message}`, severity: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  // --- End HSSM Report Management ---
+
   const handleCloseFeedback = (event, reason) => {
     if (reason === 'clickaway') {
       return;
@@ -520,21 +547,29 @@ const AdminDashboard = () => {
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 2, width: '100%' }}>
-                    <Button // Changed from StyledButton for specific context
+                    <Button
                       variant="contained"
-                      size="small" // Make buttons smaller
+                      size="small"
                       color="secondary"
                       onClick={() => handleViewReport(report)}
                     >
                       View
                     </Button>
-                    <Button // Changed from StyledButton
+                    <Button
                       variant="contained"
-                       size="small" // Make buttons smaller
+                      size="small"
                       color="success"
                       onClick={() => handleDownloadReportPDF(report)}
                     >
                       PDF
+                    </Button>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      color="error"
+                      onClick={() => handleDeleteReport(report.id || report._id)}
+                    >
+                      Delete
                     </Button>
                   </Box>
                 </StyledCard>

@@ -28,6 +28,9 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [pendingLogin, setPendingLogin] = useState(null); // Store login data for 2FA retry
   const navigate = useNavigate();
 
   // --- Firebase Initialization and Device Token ---
@@ -107,13 +110,13 @@ const Login = () => {
 
     setError('');
     setLoading(true);
-
+    setTwoFactorRequired(false);
+    setTwoFactorToken('');
+    setPendingLogin(null);
     try {
       // --- Login API Call ---
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, formData, {
         headers: { 'Content-Type': 'application/json' },
-        // Consider adding a timeout
-        // timeout: 10000, // 10 seconds
       });
 
       // --- Response Validation ---
@@ -210,8 +213,15 @@ const Login = () => {
       }
 
     } catch (err) {
-      console.error('Login process error:', err);
-       // Handle Axios errors specifically
+      // 2FA required branch
+      if (err.response && err.response.status === 206 && err.response.data.twoFactorRequired) {
+        setTwoFactorRequired(true);
+        setPendingLogin({ ...formData, userId: err.response.data.userId });
+        setError('Two-factor authentication code required.');
+        setLoading(false);
+        return;
+      }
+      // Handle Axios errors specifically
       if (err.response) {
         // Server responded with a status code outside the 2xx range
         console.error('Login API Error Response:', err.response.data);
@@ -225,6 +235,52 @@ const Login = () => {
         console.error('Login Logic Error:', err.message);
         setError(err.message || 'An unexpected error occurred during login.');
       }
+      setLoading(false);
+    }
+  };
+
+  // Handle 2FA code submission
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        email: pendingLogin.email,
+        password: pendingLogin.password,
+        twoFactorToken,
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const { token, user } = response.data;
+      login({ token, user });
+      setTwoFactorRequired(false);
+      setTwoFactorToken('');
+      setPendingLogin(null);
+      // --- Navigation (Happens AFTER context update is initiated) ---
+      console.log(`Navigating based on role: ${user.role}`);
+      // Using alert is generally bad UX, consider toast notifications
+      // alert('Login successful!');
+
+      switch (user.role) {
+        case 'individual':
+          navigate('/service');
+          break;
+        case 'service-provider':
+          navigate('/dashboard');
+          break;
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'HSSM-provider':
+          navigate('/hssm');
+          break;
+        default:
+          navigate('/');
+          break;
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid two-factor authentication code.');
     } finally {
       setLoading(false);
     }
@@ -262,6 +318,7 @@ const Login = () => {
        <Typography variant="h5" component="h1" gutterBottom align="center">
         Login
       </Typography>
+      {!twoFactorRequired ? (
       <form onSubmit={handleSubmit}>
         <TextField
           label="Email"
@@ -306,15 +363,44 @@ const Login = () => {
           {loading ? 'Logging In...' : 'Log In'}
         </Button>
       </form>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-        <Typography variant="body2"> {/* Use Typography for consistent styling */}
-          <Link to="/signup">Don't have an account? Sign up</Link>
-        </Typography>
-        <Button variant="text" size="small" onClick={handleForgotPassword} disabled={loading}> {/* Disable while logging in */}
-          Forgot password?
+    ) : (
+      <form onSubmit={handle2FASubmit}>
+        <TextField
+          label="2FA Code"
+          type="text"
+          name="twoFactorToken"
+          value={twoFactorToken}
+          onChange={e => setTwoFactorToken(e.target.value)}
+          fullWidth
+          margin="normal"
+          required
+        />
+        {error && (
+          <Typography color="error" sx={{ mt: 1, mb: 1, textAlign: 'center' }}>
+            {error}
+          </Typography>
+        )}
+        <Button
+          type="submit"
+          variant="contained"
+          color="primary"
+          fullWidth
+          sx={{ mt: 2, mb: 2 }}
+          disabled={loading}
+        >
+          {loading ? 'Verifying...' : 'Verify 2FA'}
         </Button>
-      </Box>
+      </form>
+    )}
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+      <Typography variant="body2"> {/* Use Typography for consistent styling */}
+        <Link to="/signup">Don't have an account? Sign up</Link>
+      </Typography>
+      <Button variant="text" size="small" onClick={handleForgotPassword} disabled={loading}> {/* Disable while logging in */}
+        Forgot password?
+      </Button>
     </Box>
+  </Box>
   );
 };
 

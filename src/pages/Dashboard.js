@@ -439,6 +439,25 @@ const Dashboard = () => {
                             </Paper>
                         </Grid>
                     )}
+
+                    {/* Add a 2FA settings card/button for logged-in users */}
+                    {user && (
+                      <Grid item xs={12}>
+                        <Box sx={{ my: 4, textAlign: 'center' }}>
+                          <Card sx={{ maxWidth: 400, margin: '0 auto', p: 2 }}>
+                            <CardContent>
+                              <Typography variant="h6" gutterBottom>Two-Factor Authentication</Typography>
+                              <Typography variant="body2" sx={{ mb: 2 }}>
+                                Protect your account with an extra layer of security.
+                              </Typography>
+                              <Button variant="contained" color="primary" onClick={() => navigate('/profile-2fa')}>
+                                Manage 2FA Settings
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </Box>
+                      </Grid>
+                    )}
                 </Grid>
             )}
 

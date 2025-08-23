@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Box, Typography, TextField, Paper, IconButton, Menu, MenuItem, Chip, Stack } from '@mui/material';
+import { Button, Box, Typography, TextField, Paper, IconButton, Menu, MenuItem, Chip, Stack, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import Footer from './AboutPage';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 import ChatIcon from '@mui/icons-material/Chat';
 import HistoryIcon from '@mui/icons-material/History';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -24,6 +25,7 @@ const CustomChat = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState(COMMON_TOPICS);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(true);
   const [historyAnchorEl, setHistoryAnchorEl] = useState(null);
   const chatBoxRef = React.useRef(null);
 
@@ -203,6 +205,7 @@ const CustomChat = () => {
         </Menu>
       </Box>
 
+
       <Box
         ref={chatBoxRef}
         sx={{
@@ -232,24 +235,40 @@ const CustomChat = () => {
               boxShadow: 1,
             }}
           >
-            {msg.text}
+            {msg.sender === 'bot' ? (
+              <MarkdownRenderer content={msg.text} />
+            ) : (
+              msg.text
+            )}
           </Box>
         ))}
       </Box>
 
-      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
-        {suggestions.map((suggestion, index) => (
-          <Chip
-            key={index}
-            label={suggestion}
-            onClick={() => handleSuggestionClick(suggestion)}
-            sx={{ 
-              cursor: 'pointer',
-              '&:hover': { bgcolor: 'primary.light', color: 'white' }
-            }}
-          />
-        ))}
-      </Stack>
+      <Box sx={{ mb: 2 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setSuggestionsOpen((open) => !open)}
+          sx={{ mb: 1 }}
+        >
+          {suggestionsOpen ? 'Hide Suggestions' : 'Show Suggestions'}
+        </Button>
+        <Collapse in={suggestionsOpen}>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+            {suggestions.map((suggestion, index) => (
+              <Chip
+                key={index}
+                label={suggestion}
+                onClick={() => handleSuggestionClick(suggestion)}
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'primary.light', color: 'white' }
+                }}
+              />
+            ))}
+          </Stack>
+        </Collapse>
+      </Box>
 
       <Box sx={{ display: 'flex', gap: 1 }}>
         <TextField

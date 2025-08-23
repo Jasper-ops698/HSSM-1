@@ -16,9 +16,12 @@ const Signup = React.lazy(() => import('./pages/Signup'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Footer = React.lazy(() => import('./pages/AboutPage'));
 const AdminDashboard = React.lazy(() => import('./pages/Admin'));
+const AdminPanel = React.lazy(() => import('./pages/AdminPanel'));
+const ClassTimetableManager = React.lazy(() => import('./pages/ClassTimetableManager'));
 const Hssm = React.lazy(() => import('./pages/HSSM'));
 const NotFound = React.lazy(() => import('../src/NotFound')); // 404 Page
 const Total = React.lazy(() => import('./pages/Total'));
+const Profile2FA = React.lazy(() => import('./pages/Profile2FA'));
 // Add an Unauthorized page component (you'll need to create this simple page)
 const UnauthorizedPage = React.lazy(() => import('./pages/UnauthorizedPage')); // <--- Create this component
 
@@ -58,6 +61,8 @@ const App = () => {
                 <Route path="/total" element={<Total />} />
                 {/* Route for unauthorized access */}
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                {/* User 2FA self-service page */}
+                <Route path="/2fa" element={<Profile2FA />} />
 
                 {/* --- Protected Routes --- */}
 
@@ -71,17 +76,20 @@ const App = () => {
 
                 {/* Group 2: Routes requiring 'admin' role */}
                 {/* Pass the required roles as an array to 'allowedRoles' */}
-                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'HOD']} />}>
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin-panel" element={<AdminPanel />} />
+                  <Route path="/class-timetable" element={<ClassTimetableManager />} />
                 </Route>
 
-                {/* Group 3: Routes requiring 'service-provider' role */}
-                <Route element={<ProtectedRoute allowedRoles={['service-provider']} />}>
+
+                {/* Group 3: Routes requiring 'service-provider' or 'individual' role */}
+                <Route element={<ProtectedRoute allowedRoles={['service-provider', 'individual']} />}> 
                   <Route path="/dashboard" element={<Dashboard />} />
                 </Route>
 
                 {/* Group 4: Routes requiring 'HSSM-provider' role */}
-                <Route element={<ProtectedRoute allowedRoles={['HSSM-provider']} />}>
+                <Route element={<ProtectedRoute allowedRoles={['HSSM-provider']} />}> 
                   <Route path="/hssm" element={<Hssm />} />
                 </Route>
 

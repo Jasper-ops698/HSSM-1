@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 import {
     // Layout & Structure
     Box, Container, Grid, Paper, Card, CardContent, CardActions, List, ListItem, ListItemIcon, ListItemText, Collapse, AppBar, Toolbar, CssBaseline, Drawer, Modal, Divider, TableContainer, Table, TableHead, TableBody, TableRow, TableCell,
@@ -889,6 +890,7 @@ const Hssm = () => {
             formDataToSubmit.append('mission', hospitalProfile.mission);
             formDataToSubmit.append('vision', hospitalProfile.vision);
             formDataToSubmit.append('serviceCharter', hospitalProfile.serviceCharter);
+            // Send location as a plain object (FormData will convert to [object Object], so use JSON if backend expects it, but backend will now handle both)
             formDataToSubmit.append('location', JSON.stringify(hospitalProfile.location));
 
             if (hospitalProfile.organogram instanceof File) {
@@ -1824,9 +1826,7 @@ const Hssm = () => {
                                         <Button variant="contained" color="secondary" fullWidth onClick={handleGenerateReport} disabled={reportGenerationLoading || !dateRange.start || !dateRange.end} startIcon={reportGenerationLoading ? <CircularProgress size={20} color="inherit" /> : <AssessmentIcon />} sx={{ mb: 1.5 }}>
                                             {reportGenerationLoading ? "Generating..." : "Generate & Preview Report"}
                                         </Button>
-                                        <Button variant="contained" color="success" fullWidth onClick={() => handleDownloadReport(reportPreviewContent)} disabled={!reportPreviewContent || reportGenerationLoading} startIcon={<DownloadIcon />}>
-                                            Download Previewed Report
-                                        </Button>
+                                        {/* Removed redundant Download Previewed Report button. Download is available in the preview modal only. */}
                                         <Button variant="text" size="small" onClick={handleViewReportsOpen} sx={{ mt: 'auto', alignSelf: 'flex-end', pt: 2 }}>
                                             View All Uploaded Reports
                                         </Button>
@@ -1865,6 +1865,11 @@ const Hssm = () => {
                                 Review the generated report content below before downloading. You can make edits here.
                             </Typography>
                             <TextField multiline fullWidth rows={15} value={reportPreviewContent} onChange={(e) => setReportPreviewContent(e.target.value)} variant="outlined" sx={{ bgcolor: darkMode ? 'grey.800' : 'grey.50', '& .MuiOutlinedInput-root': { fontSize: '0.9rem', lineHeight: 1.5, fontFamily: 'monospace' } }}/>
+                            {/* Render formatted markdown preview below the editor */}
+                            <Box sx={{ mt: 3, borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>Live Preview</Typography>
+                                <MarkdownRenderer content={reportPreviewContent} />
+                            </Box>
                         </Box>
                         <Box sx={{ p: 2, borderTop: 1, borderColor: "divider", display: 'flex', justifyContent: 'flex-end', gap: 2, bgcolor: "background.default" }}>
                             <Button variant="outlined" onClick={() => toggleModal('reportPreview', false)}>Cancel</Button>

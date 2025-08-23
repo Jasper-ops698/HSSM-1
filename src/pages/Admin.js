@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'; // Added useCallback
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import {
   CircularProgress,
@@ -114,9 +114,8 @@ const AdminDashboard = () => {
         `${API_BASE_URL}/api/admin/hssmProviderReports?page=${currentPage}&limit=${itemsPerPage}`,
         { headers }
       );
-
-      // --- Update State ---
-      // Normalize report IDs to always have 'id' field
+      // Optionally, add a section for the current admin to manage their own 2FA
+      // <TwoFactorSettings apiBaseUrl={API_BASE_URL} token={getToken()} />
       const normalizedReports = (reportsResponse.data.reports || []).map(r => ({
         ...r,
         id: r.id || r._id // Ensure every report has an 'id' field
@@ -485,18 +484,19 @@ const AdminDashboard = () => {
                   <TableCell sx={{ fontWeight: 'bold' }}>Username/Email</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Role</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>2FA</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={user.id || user._id /* Use _id if using MongoDB */}>
+                  <TableRow hover role="checkbox" tabIndex={-1} key={user.id || user._id}>
                     <TableCell>{user.username || user.email || 'N/A'}</TableCell>
                     <TableCell>{user.role}</TableCell>
                     <TableCell>
-                        <Typography variant='body2' color={user.isDisabled ? 'error' : 'success'}>
-                            {user.isDisabled ? 'Disabled' : 'Active'}
-                        </Typography>
+                      <Typography variant='body2' color={user.twoFactorEnabled ? 'success.main' : 'text.secondary'}>
+                        {user.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                      </Typography>
                     </TableCell>
                     <TableCell align="center">
                       <Button
@@ -513,12 +513,17 @@ const AdminDashboard = () => {
                         color="error"
                         size="small"
                         onClick={() => handleDeleteUser(user.id || user._id)}
+                        sx={{ mr: 1 }}
                       >
                         Delete
                       </Button>
+                      {/* Admin 2FA controls for user (future: modal for enable/disable) */}
+                      {/* <Button variant="outlined" size="small">Manage 2FA</Button> */}
                     </TableCell>
                   </TableRow>
-                ))}
+))}
+{/* Optionally, add a section for the current admin to manage their own 2FA */}
+{/* <TwoFactorSettings apiBaseUrl={API_BASE_URL} token={getToken()} /> */}
               </TableBody>
             </Table>
           </TableContainer>

@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext'; // Ensure this path is correct
 import { IoEye, IoEyeOff } from 'react-icons/io5';
 import { getMessaging, getToken } from 'firebase/messaging';
 import { initializeApp } from 'firebase/app';
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "../firebase";
 
 // --- Firebase Config --- (Ensure your .env variables are loaded correctly)
 const firebaseConfig = {
@@ -42,7 +44,7 @@ const Login = () => {
       // Consider using a more formal check like getApps().length === 0
       app = initializeApp(firebaseConfig);
     } catch (err) {
-      console.warn("Firebase app already initialized or initialization failed:", err);
+
       // Optionally get the existing app instance if needed: app = getApp();
     }
 
@@ -53,14 +55,14 @@ const Login = () => {
         try {
           const permission = await Notification.requestPermission();
           if (permission === 'granted') {
-            console.log('Notification permission granted.');
+
             return true;
           } else {
-            console.warn('Notification permission denied.');
+
             return false;
           }
         } catch (err) {
-          console.error('Error requesting notification permission:', err);
+
           return false;
         }
       };
@@ -72,13 +74,13 @@ const Login = () => {
         try {
           const currentToken = await getToken(messaging, { vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY });
           if (currentToken) {
-            console.log('Device Token:', currentToken);
+
             localStorage.setItem('deviceToken', currentToken);
           } else {
-            console.warn('No registration token available. Request permission to generate one.');
+
           }
         } catch (err) {
-          console.error('An error occurred while retrieving token. ', err);
+
           // Handle specific errors like 'messaging/permission-blocked' if needed
         }
       };
@@ -125,7 +127,7 @@ const Login = () => {
       const contentType = response.headers['content-type'] || '';
       if (!contentType.includes('application/json')) {
         // Log the actual response body for debugging if possible
-        console.error('Unexpected response format:', response.data);
+
         throw new Error('Received non-JSON response from server. Please contact support.');
       }
 
@@ -133,29 +135,29 @@ const Login = () => {
 
       // --- Data Validation ---
       if (!token || !user || !user.id || !user.role) { // Add checks for essential data
-          console.error('Incomplete data received from login API:', response.data);
+
           throw new Error('Authentication failed: Incomplete user data received.');
       }
 
-      console.log('Login successful, received:', { token, user });
+
 
       // --- Store Auth Details (Redundancy Check) ---
       // Consider if your AuthContext's login function *also* does this.
       // If AuthContext handles persistence, these lines might be removable.
       localStorage.setItem('token', token);
       localStorage.setItem('userData', JSON.stringify(user));
-      console.log('Token and userData stored in localStorage.');
+
 
       // --- Update Auth Context State ---
       // This is the crucial step for informing the rest of the app.
       login({ token, user }); // Assuming login updates the context state
-      console.log('AuthContext login function called.');
+
 
       // --- Device Token Registration (Optional, after successful login) ---
       const deviceToken = localStorage.getItem('deviceToken');
       if (deviceToken && user.id) { // Ensure user.id exists
         const payload = { userId: user.id, deviceToken };
-        console.log('Attempting to register device token:', payload);
+
         try {
             // Make this call non-blocking for the user login flow if possible
             // No need to await if the login doesn't depend on its success
@@ -167,27 +169,27 @@ const Login = () => {
                 },
             }).then(deviceTokenResponse => {
                  if (deviceTokenResponse.status === 200) {
-                    console.log('Device token registered successfully.');
+
                  } else {
                     // Log non-200 success responses if applicable
-                    console.warn('Device token registration returned status:', deviceTokenResponse.status, deviceTokenResponse.data);
+
                  }
             }).catch(err => {
                 // Log errors separately, don't let this block login success UX
-                console.error('Failed to register device token:', err.response?.data || err.message);
+
             });
 
         } catch (err) {
           // Catch synchronous errors if any (less likely with axios.post)
-          console.error('Error constructing/sending device token request:', err);
+
         }
       } else if (!deviceToken) {
-        console.log('No device token found in localStorage to register.');
+
       }
 
 
       // --- Navigation (Happens AFTER context update is initiated) ---
-      console.log(`Navigating based on role: ${user.role}`);
+
       // Using alert is generally bad UX, consider toast notifications
       // alert('Login successful!');
 
@@ -205,7 +207,7 @@ const Login = () => {
           navigate('/hssm');
           break;
         default:
-          console.error('Unrecognized user role:', user.role);
+
           setError('Login successful, but encountered an unknown user role.');
           // Maybe navigate to a default dashboard or show an error page
           navigate('/'); // Navigate to a safe default page
@@ -224,7 +226,7 @@ const Login = () => {
       // Handle Axios errors specifically
       if (err.response) {
         // Server responded with a status code outside the 2xx range
-        console.error('Login API Error Response:', err.response.data);
+
         setError(err.response.data?.message || `Login failed with status: ${err.response.status}`);
       } else if (err.request) {
         // Request was made but no response received (network error, timeout)
@@ -311,6 +313,31 @@ const Login = () => {
 
   const handleShowPassword = () => setShowPassword(!showPassword);
 
+  // Google Sign-In handler
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+      // Send the ID token to your backend
+      const response = await axios.post(`${API_BASE_URL}/api/auth/google`, { idToken });
+      const { token, user: backendUser } = response.data;
+      // Store token and user info as you do for email/password login
+      localStorage.setItem('token', token);
+      localStorage.setItem('userData', JSON.stringify(backendUser));
+      login({ token, user: backendUser });
+      // Redirect based on role or to dashboard
+      navigate('/dashboard');
+    } catch (error) {
+      setError(error.message || "Google sign-in failed.");
+      console.error("Google sign-in error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- Render ---
   return (
     // Consider adding some styling or a container component for better layout
@@ -318,6 +345,16 @@ const Login = () => {
        <Typography variant="h5" component="h1" gutterBottom align="center">
         Login
       </Typography>
+      <Button
+        variant="outlined"
+        color="primary"
+        fullWidth
+        sx={{ mt: 2, mb: 2 }}
+        onClick={handleGoogleSignIn}
+        disabled={loading}
+      >
+        Sign in with Google
+      </Button>
       {!twoFactorRequired ? (
       <form onSubmit={handleSubmit}>
         <TextField

@@ -11,21 +11,23 @@ import {
     DialogActions,
     Grid,
     Typography,
-    Container,    // Added
-    Box,          // Added
-    Snackbar,     // Added
-    Alert,        // Added
-    Card,         // Added
-    CardContent,  // Added
-    CardMedia,    // Added
-    Paper,        // Added
-    FormControl,  // Added
-    InputLabel,   // Added
-    Select,       // Added
-    List,         // Added for attachments
-    ListItem,     // Added for attachments
-    ListItemText, // Added for attachments
-    IconButton,   // Added for attachments
+    Container,
+    Box,
+    Snackbar,
+    Alert,
+    Card,
+    CardContent,
+    CardMedia,
+    Paper,
+    FormControl,
+    InputLabel,
+    Select,
+    List,
+    ListItem,
+    ListItemText,
+    IconButton,
+    Avatar,
+    InputAdornment
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -56,6 +58,11 @@ const ServiceRequestForm = () => {
     const [attachments, setAttachments] = useState([]); // State for file objects
     const [services, setServices] = useState([]);
     const [filteredServices, setFilteredServices] = useState([]);
+    const [hssmProviders, setHssmProviders] = useState([]);
+    const [selectedHssmProvider, setSelectedHssmProvider] = useState('');
+    const [hssmProviderSearch, setHssmProviderSearch] = useState('');
+    const [isLoadingProviders, setIsLoadingProviders] = useState(false);
+    const [providerError, setProviderError] = useState(null);
     const [isLoadingServices, setIsLoadingServices] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false); // Separate submitting state
     const [isModalOpen, setModalOpen] = useState(false);
@@ -98,9 +105,30 @@ const ServiceRequestForm = () => {
         }
     }, []);
 
+
+    // Fetch HSSM providers
+    const fetchHssmProviders = useCallback(async () => {
+        setIsLoadingProviders(true);
+        setProviderError(null);
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            const response = await axios.get(`${API_BASE_URL}/api/hssm/providers`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setHssmProviders(response.data || []);
+        } catch (err) {
+            setHssmProviders([]);
+            setProviderError('Failed to load HSSM providers.');
+        } finally {
+            setIsLoadingProviders(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchServices();
-    }, [fetchServices]);
+        fetchHssmProviders();
+    }, [fetchServices, fetchHssmProviders]);
 
     // --- Filtering Logic ---
     useEffect(() => {
@@ -141,10 +169,26 @@ const ServiceRequestForm = () => {
         // Consider resetting form state after close animation if needed
     };
 
+
     const handleFormInputChange = (event) => {
         const { name, value } = event.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'serviceId') setSelectedHssmProvider('');
     };
+
+    const handleHssmProviderChange = (event) => {
+        setSelectedHssmProvider(event.target.value);
+        setFormData(prev => ({ ...prev, serviceId: '' }));
+    };
+
+    // Filtered providers for search
+    const filteredHssmProviders = hssmProviders.filter((provider) => {
+        if (!hssmProviderSearch.trim()) return true;
+        return (
+            (provider.hospitalName && provider.hospitalName.toLowerCase().includes(hssmProviderSearch.toLowerCase())) ||
+            (provider.location && provider.location.toLowerCase().includes(hssmProviderSearch.toLowerCase()))
+        );
+    });
 
     const handleDateChange = (date) => {
         setFormData(prev => ({ ...prev, date }));
@@ -167,53 +211,42 @@ const ServiceRequestForm = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        // Validation
-        if (!formData.serviceId || !formData.date || !formData.time || !formData.description || !formData.location) {
-            setFeedback({ open: true, message: 'Please fill in all required fields (Service, Date, Time, Location, Description).', severity: 'warning' });
-            return;
-        }
         if (!user) {
             setFeedback({ open: true, message: 'User information not found. Please log in again.', severity: 'error' });
             return;
         }
-
         const token = localStorage.getItem('token');
         if (!token) {
             setFeedback({ open: true, message: 'Authentication token missing. Please log in.', severity: 'error' });
             return;
         }
-
         setIsSubmitting(true);
-        setFeedback({ open: false, message: '', severity: 'info' }); // Clear previous feedback
-
+        setFeedback({ open: false, message: '', severity: 'info' });
         const requestData = new FormData();
-        requestData.append('service', formData.serviceId); // Send service ID
-        requestData.append('date', dayjs(formData.date).toISOString()); // Send ISO string date
-        requestData.append('time', dayjs(formData.time).toISOString()); // Send ISO string time (or format as needed by backend)
-        requestData.append('description', formData.description);
-        requestData.append('location', formData.location);
-        // User info from context
-        requestData.append('userName', user.name || user.username || 'N/A'); // Adjust based on your user object structure
+        if (selectedHssmProvider) {
+            requestData.append('hssmProviderId', selectedHssmProvider);
+        } else {
+            requestData.append('service', formData.serviceId || '');
+        }
+        requestData.append('date', formData.date ? dayjs(formData.date).toISOString() : '');
+        requestData.append('time', formData.time ? dayjs(formData.time).toISOString() : '');
+        requestData.append('description', formData.description || '');
+        requestData.append('location', formData.location || '');
+        requestData.append('userName', user.name || user.username || 'N/A');
         requestData.append('userEmail', user.email || 'N/A');
-        requestData.append('userPhone', user.phone || 'N/A'); // Assuming phone is available
-
+        requestData.append('userPhone', user.phone || 'N/A');
         attachments.forEach((file) => {
-            requestData.append('attachments', file); // Use same field name for multiple files
+            requestData.append('attachments', file);
         });
-
         try {
             await axios.post(`${API_BASE_URL}/api/requests/`, requestData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    // Content-Type is set automatically by browser for FormData
                 },
             });
-
             setFeedback({ open: true, message: 'Service request submitted successfully!', severity: 'success' });
-            handleModalClose(); // Close modal on success
-            // Optionally clear form fields here if not done by handleModalOpen/Close logic
+            handleModalClose();
         } catch (err) {
-            console.error('Error submitting request:', err.response ? err.response.data : err.message);
             setFeedback({ open: true, message: `Submission failed: ${err.response?.data?.message || err.message}`, severity: 'error' });
         } finally {
             setIsSubmitting(false);
@@ -351,64 +384,142 @@ const ServiceRequestForm = () => {
                             Requesting as: {user?.name || user?.username} ({user?.email})
                          </Typography>
 
-                        <FormControl fullWidth required margin="normal" size="small">
-                            <InputLabel id="service-select-label">Service Type *</InputLabel>
+                        <FormControl fullWidth margin="normal" size="small">
+                            <InputLabel id="service-select-label">Service Type</InputLabel>
                             <Select
                                 labelId="service-select-label"
                                 id="serviceId"
-                                name="serviceId" // Name matches state key
+                                name="serviceId"
                                 value={formData.serviceId}
-                                label="Service Type *"
+                                label="Service Type"
                                 onChange={handleFormInputChange}
+                                disabled={!!selectedHssmProvider}
                             >
-                                <MenuItem value="" disabled><em>Select a service...</em></MenuItem>
+                                <MenuItem value=""><em>Select a service...</em></MenuItem>
                                 {services.map((service) => (
-                                    <MenuItem key={service._id} value={service._id}> {/* Use ID as value */}
-                                        {service.name} (Ksh {service.price?.toLocaleString()})
+                                    <MenuItem key={service._id} value={service._id}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Avatar sx={{ width: 24, height: 24, mr: 1 }} src={renderImageUrl(service.image)} alt={service.name} />
+                                            <span>{service.name} (Ksh {service.price?.toLocaleString()})</span>
+                                        </Box>
                                     </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
+                        <FormControl fullWidth margin="normal" size="small" disabled={!!formData.serviceId}>
+                            <InputLabel id="hssm-provider-select-label">HSSM Provider</InputLabel>
+                            <Select
+                                labelId="hssm-provider-select-label"
+                                id="hssmProviderId"
+                                name="hssmProviderId"
+                                value={selectedHssmProvider}
+                                label="HSSM Provider"
+                                onChange={handleHssmProviderChange}
+                                renderValue={selected => {
+                                    if (!selected) return <em>Select an HSSM provider...</em>;
+                                    const provider = hssmProviders.find(p => p._id === selected);
+                                    return provider ? `${provider.hospitalName}` : selected;
+                                }}
+                                MenuProps={{ PaperProps: { sx: { maxHeight: 350 } } }}
+                            >
+                                <MenuItem value="" disabled>
+                                    <em>Select an HSSM provider...</em>
+                                </MenuItem>
+                                <MenuItem disabled>
+                                    <TextField
+                                        placeholder="Search providers..."
+                                        value={hssmProviderSearch}
+                                        onChange={e => setHssmProviderSearch(e.target.value)}
+                                        size="small"
+                                        fullWidth
+                                        InputProps={{
+                                            startAdornment: <InputAdornment position="start">🔍</InputAdornment>,
+                                        }}
+                                        sx={{ my: 1 }}
+                                    />
+                                </MenuItem>
+                                {isLoadingProviders ? (
+                                    <MenuItem disabled><CircularProgress size={20} /> Loading providers...</MenuItem>
+                                ) : providerError ? (
+                                    <MenuItem disabled><Alert severity="error">{providerError}</Alert></MenuItem>
+                                ) : filteredHssmProviders.length === 0 ? (
+                                    <MenuItem disabled>No providers found.</MenuItem>
+                                ) : (
+                                    filteredHssmProviders.map((provider) => (
+                                        <MenuItem key={provider._id} value={provider._id}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Avatar sx={{ width: 28, height: 28, mr: 1 }}>
+                                                    {provider.hospitalName?.[0] || provider.userId?.[0] || '?'}
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography variant="subtitle2">{provider.hospitalName}</Typography>
+                                                    <Typography variant="caption" color="text.secondary">{provider.location || 'Location N/A'}</Typography>
+                                                </Box>
+                                            </Box>
+                                        </MenuItem>
+                                    ))
+                                )}
+                            </Select>
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                                Select either a regular service or an HSSM provider (not both).
+                            </Typography>
+                        </FormControl>
+                        {/* Show selected provider summary */}
+                        {selectedHssmProvider && (
+                            <Card variant="outlined" sx={{ my: 2, p: 2, bgcolor: 'background.paper' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <Avatar sx={{ width: 48, height: 48 }}>
+                                        {hssmProviders.find(p => p._id === selectedHssmProvider)?.hospitalName?.[0] || '?'}
+                                    </Avatar>
+                                    <Box>
+                                        <Typography variant="h6">
+                                            {hssmProviders.find(p => p._id === selectedHssmProvider)?.hospitalName}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            {hssmProviders.find(p => p._id === selectedHssmProvider)?.location || 'Location N/A'}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            </Card>
+                        )}
 
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mt: 2, mb: 1 }}>
                                 <DesktopDatePicker
-                                    label="Date *"
+                                    label="Date"
                                     inputFormat="DD/MM/YYYY"
                                     value={formData.date}
                                     onChange={handleDateChange}
-                                    renderInput={(params) => <TextField {...params} fullWidth required size="small" />}
-                                    minDate={dayjs()} // Prevent selecting past dates
+                                    renderInput={(params) => <TextField {...params} fullWidth size="small" />}
+                                    minDate={dayjs()}
                                 />
                                 <TimePicker
-                                    label="Time *"
+                                    label="Time"
                                     value={formData.time}
                                     onChange={handleTimeChange}
-                                    renderInput={(params) => <TextField {...params} fullWidth required size="small" />}
+                                    renderInput={(params) => <TextField {...params} fullWidth size="small" />}
                                 />
                             </Stack>
                         </LocalizationProvider>
 
                         <TextField
-                            label="Location *"
+                            label="Location"
                             id="location"
-                            name="location" // Name matches state key
+                            name="location"
                             value={formData.location}
                             onChange={handleFormInputChange}
                             fullWidth
-                            required
                             margin="normal"
                             size="small"
                         />
 
                         <TextField
-                            label="Description / Specific Instructions *"
+                            label="Description / Specific Instructions"
                             id="description"
-                            name="description" // Name matches state key
+                            name="description"
                             value={formData.description}
                             onChange={handleFormInputChange}
                             fullWidth
-                            required
                             margin="normal"
                             multiline
                             rows={4}

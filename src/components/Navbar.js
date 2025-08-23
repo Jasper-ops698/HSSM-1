@@ -35,6 +35,9 @@ const Navbar = () => {
     { text: 'Login', path: '/login' },
   ];
 
+  // 2FA menu item for logged-in users
+  const twoFAMenuItem = { text: '2FA', path: '/2fa' };
+
   return (
     <AppBar position="sticky">
       <Toolbar>
@@ -57,9 +60,19 @@ const Navbar = () => {
             </Button>
           ))}
           {user && (
-            <Button color="inherit" onClick={logout}>
-              Logout
-            </Button>
+            <>
+              <Button
+                color="inherit"
+                component={Link}
+                to={twoFAMenuItem.path}
+                sx={{ textDecoration: 'none' }}
+              >
+                {twoFAMenuItem.text}
+              </Button>
+              <Button color="inherit" onClick={logout}>
+                Logout
+              </Button>
+            </>
           )}
         </Box>
 
@@ -94,9 +107,19 @@ const Navbar = () => {
               </ListItem>
             ))}
             {user && (
-              <ListItem button onClick={logout}>
-                <ListItemText primary="Logout" />
-              </ListItem>
+              <>
+                <ListItem
+                  button
+                  component={Link}
+                  to={twoFAMenuItem.path}
+                  onClick={handleMenuClose}
+                >
+                  <ListItemText primary={twoFAMenuItem.text} />
+                </ListItem>
+                <ListItem button onClick={logout}>
+                  <ListItemText primary="Logout" />
+                </ListItem>
+              </>
             )}
           </List>
         </Drawer>

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import StudentAbsenceModal from './StudentAbsenceModal';
+import TeacherAbsenceModal from './TeacherAbsenceModal';
 import {
     Container,
     Typography,
@@ -55,6 +57,8 @@ const Dashboard = () => {
     const [imageFile, setImageFile] = useState(null); // For new image upload
     const [requestStatusFilter, setRequestStatusFilter] = useState('');
     const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'info' });
+    const [absenceModalOpen, setAbsenceModalOpen] = useState(false);
+    const [teacherAbsenceModalOpen, setTeacherAbsenceModalOpen] = useState(false);
 
     const getAuthToken = useCallback(() => localStorage.getItem('token'), []);
 
@@ -559,6 +563,64 @@ const Dashboard = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+            {(user?.role === 'admin' || user?.role === 'HOD') && (
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mb: 2 }}>
+                    {user?.role === 'admin' && (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            sx={{ bgcolor: '#1976d2', fontWeight: 'bold' }}
+                            onClick={() => navigate('/admin-panel')}
+                        >
+                            Go to Admin Panel
+                        </Button>
+                    )}
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        sx={{ bgcolor: '#1976d2', fontWeight: 'bold' }}
+                        onClick={() => navigate('/class-timetable')}
+                    >
+                        Manage Classes & Timetables
+                    </Button>
+                </Box>
+            )}
+            {user?.role === 'student' && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        sx={{ bgcolor: '#1976d2', fontWeight: 'bold' }}
+                        onClick={() => setAbsenceModalOpen(true)}
+                    >
+                        Apply for Absence
+                    </Button>
+                </Box>
+            )}
+            {user?.role === 'teacher' && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        sx={{ bgcolor: '#1976d2', fontWeight: 'bold' }}
+                        onClick={() => setTeacherAbsenceModalOpen(true)}
+                    >
+                        Report Absence
+                    </Button>
+                </Box>
+            )}
+            <StudentAbsenceModal
+                open={absenceModalOpen}
+                onClose={() => setAbsenceModalOpen(false)}
+                classId={null} // TODO: Pass actual classId if available
+                userId={user?._id}
+            />
+            <TeacherAbsenceModal
+                open={teacherAbsenceModalOpen}
+                onClose={() => setTeacherAbsenceModalOpen(false)}
+                classId={null} // TODO: Pass actual classId if available
+                userId={user?._id}
+            />
         </Container>
     );
 };

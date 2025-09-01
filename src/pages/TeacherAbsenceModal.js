@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, Typography, Snackbar, Alert
 } from '@mui/material';
@@ -8,6 +8,10 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const LOGO_COLOR = '#1976d2';
 
 const TeacherAbsenceModal = ({ open, onClose, classId, userId, refreshAbsences }) => {
+  useEffect(() => {
+    console.debug('TeacherAbsenceModal mounted, open=', open, 'classId=', classId, 'userId=', userId);
+    return () => console.debug('TeacherAbsenceModal unmounted');
+  }, [open, classId, userId]);
   const [reason, setReason] = useState('');
   const [date, setDate] = useState('');
   const [duration, setDuration] = useState('');

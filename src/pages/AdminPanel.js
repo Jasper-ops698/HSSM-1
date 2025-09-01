@@ -10,30 +10,31 @@ const LOGO_COLOR = '#1976d2'; // Replace with your actual logo color
 const roleOptions = [
   { value: 'teacher', label: 'Teacher' },
   { value: 'credit-controller', label: 'Credit Controller' },
-  { value: 'HOD', label: 'Head of Department' }
+  { value: 'HOD', label: 'Head of Department' },
+  { value: 'HSSM-provider', label: 'HSSM Provider' }
 ];
 
 const AdminPanel = () => {
-  const [serviceProviders, setServiceProviders] = useState([]);
+  const [staffUsers, setStaffUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'info' });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    fetchServiceProviders();
+    fetchStaffUsers();
   }, []);
 
-  const fetchServiceProviders = async () => {
+  const fetchStaffUsers = async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
       const res = await axios.get(`${API_BASE_URL}/api/admin/analytics`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setServiceProviders(res.data.users.filter(u => u.role === 'service-provider'));
+      setStaffUsers(res.data.users.filter(u => u.role === 'staff'));
     } catch (err) {
-      setFeedback({ open: true, message: 'Failed to fetch service providers.', severity: 'error' });
+      setFeedback({ open: true, message: 'Failed to fetch staff users.', severity: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +52,7 @@ const AdminPanel = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFeedback({ open: true, message: 'Role assigned successfully!', severity: 'success' });
-      fetchServiceProviders();
+      fetchStaffUsers(); // Refetch staff users after role assignment
     } catch (err) {
       setFeedback({ open: true, message: 'Failed to assign role.', severity: 'error' });
     } finally {
@@ -67,21 +68,21 @@ const AdminPanel = () => {
       <Card sx={{ mb: 4, borderColor: LOGO_COLOR, borderWidth: 2, borderStyle: 'solid' }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2, color: LOGO_COLOR }}>
-            Assign Roles to Service Providers
+            Assign Roles to Staff Members
           </Typography>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel id="user-select-label">Service Provider</InputLabel>
+                <InputLabel id="user-select-label">Staff Member</InputLabel>
                 <Select
                   labelId="user-select-label"
                   value={selectedUser}
-                  label="Service Provider"
+                  label="Staff Member"
                   onChange={e => setSelectedUser(e.target.value)}
                   sx={{ bgcolor: '#f5f5f5' }}
                 >
                   <MenuItem value=""><em>Select a user...</em></MenuItem>
-                  {serviceProviders.map(user => (
+                  {staffUsers.map(user => (
                     <MenuItem key={user._id} value={user._id}>{user.name} ({user.email})</MenuItem>
                   ))}
                 </Select>

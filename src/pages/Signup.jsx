@@ -8,13 +8,13 @@ const API_BASE_URL = process.env.REACT_APP_API_URL
 
 
 const SignUp = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', role: 'individual' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', role: 'student' });
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  // Input change handler
+  // Input change handler 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -113,9 +113,8 @@ const SignUp = () => {
             value={formData.role}
             onChange={handleInputChange}
           >
-            <MenuItem value="individual">Individual</MenuItem>
-            <MenuItem value="service-provider">Service Provider</MenuItem>
-            <MenuItem value="HSSM-provider">HSSM Provider</MenuItem>
+            <MenuItem value="student">Student</MenuItem>
+            <MenuItem value="staff">Staff</MenuItem>
           </Select>
         </FormControl>
         <Button

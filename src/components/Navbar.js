@@ -14,6 +14,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationCenter from './NotificationCenter';
 import ncmtc from './assests/ncmtc.png';
 import './Navbar.css';
 
@@ -47,7 +48,7 @@ const Navbar = () => {
         </Typography>
 
         {/* Desktop Nav Links */}
-        <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
           {menuItems.map((item) => (
             <Button
               key={item.text}
@@ -64,11 +65,40 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 component={Link}
+                to="/classes"
+                sx={{ textDecoration: 'none' }}
+              >
+                Classes
+              </Button>
+              {user.role === 'teacher' && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/manage-classes"
+                  sx={{ textDecoration: 'none' }}
+                >
+                  Manage Classes
+                </Button>
+              )}
+              {user.role === 'HSSM-provider' && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/hssm-dashboard"
+                  sx={{ textDecoration: 'none' }}
+                >
+                  HSSM Dashboard
+                </Button>
+              )}
+              <Button
+                color="inherit"
+                component={Link}
                 to={twoFAMenuItem.path}
                 sx={{ textDecoration: 'none' }}
               >
                 {twoFAMenuItem.text}
               </Button>
+              <NotificationCenter />
               <Button color="inherit" onClick={logout}>
                 Logout
               </Button>
@@ -86,14 +116,15 @@ const Navbar = () => {
         >
           <MenuIcon />
         </IconButton>
+      </Toolbar>
 
-        {/* Mobile Drawer */}
-        <Drawer
-          anchor="right"
-          open={mobileOpen}
-          onClose={handleMenuClose}
-          sx={{ display: { xs: 'block', sm: 'none' } }}
-        >
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileOpen}
+        onClose={handleMenuClose}
+        sx={{ display: { xs: 'block', sm: 'none' } }}
+      >
           <List>
             {menuItems.map((item) => (
               <ListItem
@@ -111,19 +142,47 @@ const Navbar = () => {
                 <ListItem
                   button
                   component={Link}
+                  to="/classes"
+                  onClick={handleMenuClose}
+                >
+                  <ListItemText primary="Classes" />
+                </ListItem>
+                {user.role === 'teacher' && (
+                  <ListItem
+                    button
+                    component={Link}
+                    to="/manage-classes"
+                    onClick={handleMenuClose}
+                  >
+                    <ListItemText primary="Manage Classes" />
+                  </ListItem>
+                )}
+                {user.role === 'HSSM-provider' && (
+                  <ListItem
+                    button
+                    component={Link}
+                    to="/hssm-dashboard"
+                    onClick={handleMenuClose}
+                  >
+                    <ListItemText primary="HSSM Dashboard" />
+                  </ListItem>
+                )}
+                <ListItem
+                  button
+                  component={Link}
                   to={twoFAMenuItem.path}
                   onClick={handleMenuClose}
                 >
                   <ListItemText primary={twoFAMenuItem.text} />
                 </ListItem>
-                <ListItem button onClick={logout}>
+                <ListItem button onClick={() => { logout(); handleMenuClose(); }}>
                   <ListItemText primary="Logout" />
                 </ListItem>
               </>
             )}
           </List>
-        </Drawer>
-      </Toolbar>
+        {user && <NotificationCenter />}
+      </Drawer>
     </AppBar>
   );
 };

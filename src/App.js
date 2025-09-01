@@ -10,10 +10,11 @@ import Loading from './components/Loading'; // Fallback loading component
 
 // Lazy-loaded components
 const Home = React.lazy(() => import('./pages/Home'));
-const ServiceRequestForm = React.lazy(() => import('./pages/ServicePage'));
+const ClassEnrollmentPage = React.lazy(() => import('./pages/ClassPage'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Signup = React.lazy(() => import('./pages/Signup'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const WaitingForRole = React.lazy(() => import('./pages/WaitingForRole'));
 const Footer = React.lazy(() => import('./pages/AboutPage'));
 const AdminDashboard = React.lazy(() => import('./pages/Admin'));
 const AdminPanel = React.lazy(() => import('./pages/AdminPanel'));
@@ -22,6 +23,10 @@ const Hssm = React.lazy(() => import('./pages/HSSM'));
 const NotFound = React.lazy(() => import('../src/NotFound')); // 404 Page
 const Total = React.lazy(() => import('./pages/Total'));
 const Profile2FA = React.lazy(() => import('./pages/Profile2FA'));
+const ReportCenter = React.lazy(() => import('./pages/ReportCenter'));
+const ReportEditor = React.lazy(() => import('./pages/ReportEditor'));
+const TeacherClassManagement = React.lazy(() => import('./pages/TeacherClassManagement'));
+const HssmDashboard = React.lazy(() => import('./pages/HssmDashboard'));
 // Add an Unauthorized page component (you'll need to create this simple page)
 const UnauthorizedPage = React.lazy(() => import('./pages/UnauthorizedPage')); // <--- Create this component
 
@@ -59,6 +64,7 @@ const App = () => {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/about" element={<Footer />} />
                 <Route path="/total" element={<Total />} />
+                <Route path="/waiting-for-role" element={<WaitingForRole />} />
                 {/* Route for unauthorized access */}
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
                 {/* User 2FA self-service page */}
@@ -70,7 +76,7 @@ const App = () => {
                 {/* The ProtectedRoute component without 'allowedRoles' just checks for login */}
                 <Route element={<ProtectedRoute />}>
                   {/* Based on your Login.js, /service seems intended for logged-in users */}
-                  <Route path="/service" element={<ServiceRequestForm />} />
+                  <Route path="/classes" element={<ClassEnrollmentPage />} />
                   {/* Add other general authenticated routes here if needed */}
                 </Route>
 
@@ -83,14 +89,22 @@ const App = () => {
                 </Route>
 
 
-                {/* Group 3: Routes requiring 'service-provider' or 'individual' role */}
-                <Route element={<ProtectedRoute allowedRoles={['service-provider', 'individual']} />}> 
+                {/* Group 3: Dashboard route for multiple roles */}
+                <Route element={<ProtectedRoute allowedRoles={['student', 'teacher']} />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                 </Route>
 
-                {/* Group 4: Routes requiring 'HSSM-provider' role */}
+                {/* Group 4: Teacher-specific routes */}
+                <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
+                  <Route path="/manage-classes" element={<TeacherClassManagement />} />
+                </Route>
+
+                {/* Group 5: Routes requiring 'HSSM-provider' role */}
                 <Route element={<ProtectedRoute allowedRoles={['HSSM-provider']} />}> 
                   <Route path="/hssm" element={<Hssm />} />
+                  <Route path="/report-center" element={<ReportCenter />} />
+                  <Route path="/report-editor/:id" element={<ReportEditor />} />
+                  <Route path="/hssm-dashboard" element={<HssmDashboard />} />
                 </Route>
 
                 {/* Catch-All Route for 404 Not Found - Must be last */}

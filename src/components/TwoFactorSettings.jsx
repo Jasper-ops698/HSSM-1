@@ -17,9 +17,8 @@ const TwoFactorSettings = ({ apiBaseUrl, token }) => {
     setLoading(true);
     setError('');
     try {
-      // You may want to add a dedicated endpoint for 2FA status
-      const res = await axios.get(`${apiBaseUrl}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
-      setEnabled(res.data.user.twoFactorEnabled);
+      const res = await axios.get(`${apiBaseUrl}/api/2fa/status`, { headers: { Authorization: `Bearer ${token}` } });
+      setEnabled(res.data.twoFactorEnabled);
     } catch (e) {
       setError('Failed to fetch 2FA status.');
     } finally {

@@ -194,17 +194,17 @@ const Login = () => {
       // alert('Login successful!');
 
       switch (user.role) {
-        case 'individual':
+        case 'student':
           navigate('/service');
-          break;
-        case 'service-provider':
-          navigate('/dashboard');
           break;
         case 'admin':
           navigate('/admin');
           break;
         case 'HSSM-provider':
           navigate('/hssm');
+          break;
+        case 'staff':
+          navigate('/waiting-for-role');
           break;
         default:
 
@@ -265,10 +265,10 @@ const Login = () => {
       // alert('Login successful!');
 
       switch (user.role) {
-        case 'individual':
+        case 'student':
           navigate('/service');
           break;
-        case 'service-provider':
+        case 'staff':
           navigate('/dashboard');
           break;
         case 'admin':

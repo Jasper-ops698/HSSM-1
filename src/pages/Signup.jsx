@@ -48,7 +48,7 @@ const SignUp = () => {
 
     try {
       await axios.post(`${API_BASE_URL}/api/auth/signup`, formData);
-      alert('Signup successful! Please log in.');
+      alert('Registration successful! Please check your email to verify your account.');
       navigate('/login');
     } catch (err) {
       setErrorMessage(err.response?.data?.message || 'An error occurred. Please try again.');

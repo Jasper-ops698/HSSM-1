@@ -20,15 +20,19 @@ const AdminDashboard = React.lazy(() => import('./pages/Admin'));
 const AdminPanel = React.lazy(() => import('./pages/AdminPanel'));
 const ClassTimetableManager = React.lazy(() => import('./pages/ClassTimetableManager'));
 const Hssm = React.lazy(() => import('./pages/HSSM'));
+const HssmDashboard = React.lazy(() => import('./pages/HssmDashboard'));
 const NotFound = React.lazy(() => import('../src/NotFound')); // 404 Page
 const Total = React.lazy(() => import('./pages/Total'));
 const Profile2FA = React.lazy(() => import('./pages/Profile2FA'));
 const ReportCenter = React.lazy(() => import('./pages/ReportCenter'));
 const ReportEditor = React.lazy(() => import('./pages/ReportEditor'));
 const TeacherClassManagement = React.lazy(() => import('./pages/TeacherClassManagement'));
-const HssmDashboard = React.lazy(() => import('./pages/HssmDashboard'));
+const StudentDashboard = React.lazy(() => import('./pages/StudentDashboard'));
+const HodDashboard = React.lazy(() => import('./pages/HodDashboard'));
+const CreditControllerDashboard = React.lazy(() => import('./pages/CreditControllerDashboard'));
 // Add an Unauthorized page component (you'll need to create this simple page)
-const UnauthorizedPage = React.lazy(() => import('./pages/UnauthorizedPage')); // <--- Create this component
+const UnauthorizedPage = React.lazy(() => import('./pages/UnauthorizedPage'));
+const EmailVerification = React.lazy(() => import('./pages/EmailVerification'));
 
 // Updated MUI theme (keep your theme)
 const theme = createTheme({
@@ -65,6 +69,7 @@ const App = () => {
                 <Route path="/about" element={<Footer />} />
                 <Route path="/total" element={<Total />} />
                 <Route path="/waiting-for-role" element={<WaitingForRole />} />
+                <Route path="/verify-email" element={<EmailVerification />} />
                 {/* Route for unauthorized access */}
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
                 {/* User 2FA self-service page */}
@@ -94,9 +99,24 @@ const App = () => {
                   <Route path="/dashboard" element={<Dashboard />} />
                 </Route>
 
+                {/* Group 6: Student-specific routes */}
+                <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+                  <Route path="/student-dashboard" element={<StudentDashboard />} />
+                </Route>
+
                 {/* Group 4: Teacher-specific routes */}
                 <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
                   <Route path="/manage-classes" element={<TeacherClassManagement />} />
+                </Route>
+
+                {/* Group 7: HOD-specific routes */}
+                <Route element={<ProtectedRoute allowedRoles={['HOD']} />}>
+                  <Route path="/hod-dashboard" element={<HodDashboard />} />
+                </Route>
+
+                {/* Group 8: Credit Controller-specific routes */}
+                <Route element={<ProtectedRoute allowedRoles={['credit-controller']} />}>
+                  <Route path="/credit-dashboard" element={<CreditControllerDashboard />} />
                 </Route>
 
                 {/* Group 5: Routes requiring 'HSSM-provider' role */}

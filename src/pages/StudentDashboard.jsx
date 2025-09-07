@@ -48,7 +48,7 @@ const StudentDashboard = () => {
         setDashboardData(res.data);
 
         // Fetch announcements for student
-        const announcementsRes = await axios.get(`${API_BASE_URL}/api/announcements/student`, {
+        const announcementsRes = await axios.get(`${API_BASE_URL}/api/announcements`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setAnnouncements(announcementsRes.data);

@@ -195,7 +195,7 @@ const Login = () => {
 
       switch (user.role) {
         case 'student':
-          navigate('/service');
+          navigate('/student-dashboard');
           break;
         case 'admin':
           navigate('/admin');
@@ -328,8 +328,25 @@ const Login = () => {
       localStorage.setItem('token', token);
       localStorage.setItem('userData', JSON.stringify(backendUser));
       login({ token, user: backendUser });
-      // Redirect based on role or to dashboard
-      navigate('/dashboard');
+      
+      // Role-based navigation (same as regular login)
+      switch (backendUser.role) {
+        case 'student':
+          navigate('/student-dashboard');
+          break;
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'HSSM-provider':
+          navigate('/hssm');
+          break;
+        case 'staff':
+          navigate('/waiting-for-role');
+          break;
+        default:
+          navigate('/dashboard');
+          break;
+      }
     } catch (error) {
       setError(error.message || "Google sign-in failed.");
       console.error("Google sign-in error:", error);

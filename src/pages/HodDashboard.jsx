@@ -19,7 +19,7 @@ import {
   TableRow,
   Chip,
 } from '@mui/material';
-import { People, Class, Receipt, HourglassEmpty } from '@mui/icons-material';
+import { People, Class, HourglassEmpty } from '@mui/icons-material';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -81,7 +81,7 @@ const HodDashboard = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}><People sx={{ mr: 1 }} /> Teachers</Typography>
-              <Typography variant="h4">{dashboardData?.kpis?.totalTeachers ?? '0'}</Typography>
+              <Typography variant="h4">{dashboardData?.kpi?.totalTeachers ?? '0'}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -89,15 +89,15 @@ const HodDashboard = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}><Class sx={{ mr: 1 }} /> Classes</Typography>
-              <Typography variant="h4">{dashboardData?.kpis?.totalClasses ?? '0'}</Typography>
+              <Typography variant="h4">{dashboardData?.kpi?.totalClasses ?? '0'}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}><Receipt sx={{ mr: 1 }} /> Total Enrollments</Typography>
-              <Typography variant="h4">{dashboardData?.kpis?.totalEnrollments ?? '0'}</Typography>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}><People sx={{ mr: 1 }} /> Students</Typography>
+              <Typography variant="h4">{dashboardData?.kpi?.totalStudents ?? '0'}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -105,7 +105,7 @@ const HodDashboard = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}><HourglassEmpty sx={{ mr: 1 }} /> Pending</Typography>
-              <Typography variant="h4">{dashboardData?.kpis?.pendingEnrollments ?? '0'}</Typography>
+              <Typography variant="h4">{dashboardData?.kpi?.pendingEnrollments ?? '0'}</Typography>
             </CardContent>
           </Card>
         </Grid>

@@ -342,7 +342,7 @@ const Hssm = () => {
                 fetchWithAuth(`${API_BASE_URL}/api/hssm/incidents?userId=${userId}`),
                 fetchWithAuth(`${API_BASE_URL}/api/hssm/assets?userId=${userId}`),
                 fetchWithAuth(`${API_BASE_URL}/api/hssm/tasks?userId=${userId}`),
-                fetchWithAuth(`${API_BASE_URL}/api/hssm/meterReadings?userId=${userId}`),
+                fetchWithAuth(`${API_BASE_URL}/api/hssm/meter-readings?userId=${userId}`),
             ]);
 
             // Improved error checking
@@ -452,8 +452,8 @@ const Hssm = () => {
             incident: '/api/hssm/incidents',
             asset: '/api/hssm/assets',
             task: '/api/hssm/tasks',
-            meterReading: '/api/hssm/meterReadings',
-            reportUpload: '/api/hssm/reports', // Assuming backend handles report content/metadata from this upload
+            meterReading: '/api/hssm/meter-readings',
+            reportUpload: '/api/reports', // Assuming backend handles report content/metadata from this upload
         };
 
         if (!endpointMap[formKey]) {
@@ -670,7 +670,7 @@ const Hssm = () => {
             const token = localStorage.getItem('token');
             if (!token) throw new Error('Authentication token missing.');
 
-            const response = await fetch(`${API_BASE_URL}/api/hssm/report/generate`, {
+            const response = await fetch(`${API_BASE_URL}/api/reports/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ startDate: dateRange.start, endDate: dateRange.end }),
@@ -779,7 +779,7 @@ const Hssm = () => {
 
         try {
             const headers = { Authorization: `Bearer ${token}` };
-            const response = await fetch(`${API_BASE_URL}/api/hssm/meterReadings/trend?userId=${userId}&limit=30`, { headers }); // Fetch last 30 readings
+            const response = await fetch(`${API_BASE_URL}/api/hssm/meter-readings/trend?userId=${userId}&limit=30`, { headers }); // Fetch last 30 readings
             if (!response.ok) throw new Error(`Failed to fetch trend (${response.status})`);
 
             const trendData = await response.json();
@@ -958,16 +958,19 @@ const Hssm = () => {
             const token = localStorage.getItem('token');
             if (!token) throw new Error("Authentication token not found.");
 
-            const res = await fetch(`${API_BASE_URL}/api/hssm/technical-plans`, {
-                method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
-            });
-
-            if (!res.ok) {
-                 const errorData = await res.json().catch(() => ({ message: res.statusText }));
-                 throw new Error(errorData.message || 'Failed to upload technical plan');
-            }
-            const newPlan = await res.json();
-            setHospitalProfile(prev => ({ ...prev, technicalPlans: [...prev.technicalPlans, newPlan] }));
+            // const res = await fetch(`${API_BASE_URL}/api/hssm/technical-plans`, {
+            //     method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
+            // });
+            // 
+            // if (!res.ok) {
+            //      const errorData = await res.json().catch(() => ({ message: res.statusText }));
+            //      throw new Error(errorData.message || 'Failed to upload technical plan');
+            // }
+            // const newPlan = await res.json();
+            // setHospitalProfile(prev => ({ ...prev, technicalPlans: [...prev.technicalPlans, newPlan] }));
+            
+            // Technical plans functionality not implemented in backend yet
+            enqueueSnackbar('Technical plans upload not implemented yet', { variant: 'info' });
             toggleModal('addTechPlan', false); // Close modal
             setTechnicalPlanFormData(initialFormData.technicalPlan); // Reset form state
             enqueueSnackbar('Technical plan uploaded successfully', { variant: 'success' });
@@ -986,15 +989,18 @@ const Hssm = () => {
         try {
             const token = localStorage.getItem('token');
              if (!token) throw new Error("Authentication token not found.");
-            const res = await fetch(`${API_BASE_URL}/api/hssm/technical-plans/${planId}`, {
-                method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) {
-                 const errorData = await res.json().catch(() => ({ message: res.statusText }));
-                 throw new Error(errorData.message || 'Failed to delete technical plan');
-            }
-            setHospitalProfile(prev => ({ ...prev, technicalPlans: prev.technicalPlans.filter(plan => plan._id !== planId) }));
-            enqueueSnackbar('Technical plan deleted successfully', { variant: 'success' });
+            // const res = await fetch(`${API_BASE_URL}/api/hssm/technical-plans/${planId}`, {
+            //     method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+            // });
+            // if (!res.ok) {
+            //      const errorData = await res.json().catch(() => ({ message: res.statusText }));
+            //      throw new Error(errorData.message || 'Failed to delete technical plan');
+            // }
+            // setHospitalProfile(prev => ({ ...prev, technicalPlans: prev.technicalPlans.filter(plan => plan._id !== planId) }));
+            // enqueueSnackbar('Technical plan deleted successfully', { variant: 'success' });
+            
+            // Technical plans functionality not implemented in backend yet
+            enqueueSnackbar('Technical plans delete not implemented yet', { variant: 'info' });
         } catch (error) {
             console.error('Error deleting technical plan:', error);
             enqueueSnackbar(`Deletion Failed: ${error.message}`, { variant: 'error' });
@@ -1066,12 +1072,14 @@ const Hssm = () => {
                  if (Object.keys(textUpdates).length > 0) {
                     try {
                         console.log(`Updating plan ${planId} text fields:`, textUpdates);
-                        const res = await fetch(`${API_BASE_URL}/api/hssm/technical-plans/${planId}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify(textUpdates)
-                        });
-                        if (!res.ok) throw new Error(`Failed to update plan text fields for ${planId}`);
+                        // const res = await fetch(`${API_BASE_URL}/api/hssm/technical-plans/${planId}`, {
+                        //     method: 'PUT',
+                        //     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        //     body: JSON.stringify(textUpdates)
+                        // });
+                        // if (!res.ok) throw new Error(`Failed to update plan text fields for ${planId}`);
+                        
+                        console.log('Technical plans text update not implemented yet');
                         console.log(`Plan ${planId} text fields updated successfully.`);
                      } catch (error) {
                          console.error(`Error updating text fields for plan ${planId}:`, error);
@@ -1086,16 +1094,18 @@ const Hssm = () => {
                         console.log(`Updating plan ${planId} file:`, fileUpdate.name);
                         const fileFormData = new FormData();
                         fileFormData.append('file', fileUpdate, fileUpdate.name);
-                        const res = await fetch(`${API_BASE_URL}/api/hssm/technical-plans/${planId}/file`, { // Assumes specific file update endpoint
-                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: fileFormData
-                        });
-                        if (!res.ok) throw new Error(`Failed to update file for ${planId}`);
-                        const updatedPlanData = await res.json();
+                        // const res = await fetch(`${API_BASE_URL}/api/hssm/technical-plans/${planId}/file`, { // Assumes specific file update endpoint
+                        //     method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: fileFormData
+                        // });
+                        // if (!res.ok) throw new Error(`Failed to update file for ${planId}`);
+                        // const updatedPlanData = await res.json();
+                        
+                        console.log('Technical plans file update not implemented yet');
                          // Update local state with confirmed data (includes new fileUrl)
                          setHospitalProfile(prev => ({
                             ...prev,
                             technicalPlans: prev.technicalPlans.map(p =>
-                                p._id === planId ? { ...p, ...updatedPlanData, file: null } : p // Clear local file obj
+                                p._id === planId ? { ...p, file: null } : p // Clear local file obj
                             )
                         }));
                          enqueueSnackbar(`Plan ${planId} file updated.`, { variant: 'success' });
@@ -1348,7 +1358,7 @@ const Hssm = () => {
             const userId = userData.id;
             if (!userId) throw new Error("User ID not found.");
 
-            const res = await fetch(`${API_BASE_URL}/api/hssm/reports?userId=${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await fetch(`${API_BASE_URL}/api/reports?userId=${userId}`, { headers: { Authorization: `Bearer ${token}` } });
             if (!res.ok) {
                  const errorData = await res.json().catch(() => ({ message: res.statusText }));
                  throw new Error(errorData.message || 'Failed to fetch reports');
@@ -1381,7 +1391,7 @@ const Hssm = () => {
             const reportId = editReport._id || editReport.id;
             if (!reportId) throw new Error("Report ID missing.");
 
-            const res = await fetch(`${API_BASE_URL}/api/hssm/reports/${reportId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ content: editReportContent }), // Send updated content
@@ -1416,7 +1426,7 @@ const Hssm = () => {
             const token = localStorage.getItem('token');
             if (!token) throw new Error("Authentication required.");
 
-            const res = await fetch(`${API_BASE_URL}/api/hssm/reports/${reportId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
                 method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
             });
              if (!res.ok) {

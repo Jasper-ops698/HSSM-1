@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { TextField, Button, Box, FormControl, Typography, InputLabel, Select, MenuItem, IconButton } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { IoEyeOff, IoEye } from 'react-icons/io5';
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL
+import api from '../api';
 
 
 const SignUp = () => {
@@ -47,7 +45,7 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/signup`, formData);
+      await api.post('/api/auth/signup', formData);
       alert('Registration successful! Please check your email to verify your account.');
       navigate('/login');
     } catch (err) {

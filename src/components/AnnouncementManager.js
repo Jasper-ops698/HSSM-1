@@ -21,9 +21,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Announcement as AnnouncementIcon, Add } from '@mui/icons-material';
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import api from '../api';
 
 const CreateAnnouncementModal = ({ open, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -51,12 +49,7 @@ const CreateAnnouncementModal = ({ open, onClose, onSuccess }) => {
     
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${API_BASE_URL}/api/announcements`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/api/announcements', formData);
       
       // Reset form and close modal
       setFormData({
@@ -202,10 +195,7 @@ const AnnouncementManager = () => {
   const fetchAnnouncements = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE_URL}/api/announcements`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/api/announcements');
       setAnnouncements(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch announcements');
@@ -225,12 +215,7 @@ const AnnouncementManager = () => {
 
   const handleToggleActive = async (announcement) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `${API_BASE_URL}/api/announcements/${announcement._id}`,
-        { active: !announcement.active },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/api/announcements/${announcement._id}`, { active: !announcement.active });
       
       setSuccess(`Announcement ${announcement.active ? 'deactivated' : 'activated'}`);
       fetchAnnouncements();

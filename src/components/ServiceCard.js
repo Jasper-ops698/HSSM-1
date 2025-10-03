@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, CardMedia, CardContent, Typography, Box } from '@mui/material';
+import assetUrl from '../utils/assetUrl';
 
 const ServiceCard = ({ service }) => {
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
   
   return (
     <Card 
@@ -17,9 +17,9 @@ const ServiceCard = ({ service }) => {
       }}
     >
       <CardMedia
-        component="img"
-        className="service-image"
-        image={service.image ? `${API_BASE_URL}/${service.image}` : `${API_BASE_URL}/uploads/placeholder-image.png`}
+  component="img"
+  className="service-image"
+  image={service.image ? assetUrl(service.image) : assetUrl('uploads/placeholder-image.png')}
         alt={service.name}
         sx={{
           height: 200,

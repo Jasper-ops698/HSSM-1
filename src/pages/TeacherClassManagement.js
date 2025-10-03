@@ -17,19 +17,25 @@ import {
   ListItemText,
   ListItemAvatar,
   Avatar,
-  Divider
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import { 
   Class as ClassIcon, 
   Edit, 
   Delete, 
-  Schedule
+  Schedule,
+  ArrowBack
 } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../api';
+import assetUrl from '../utils/assetUrl';
+import { useNavigate } from 'react-router-dom';
 import TeacherClassVenue from '../components/TeacherClassVenue';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const FALLBACK_IMAGE_URL = `${API_BASE_URL}/uploads/placeholder-image.png`;
+const FALLBACK_IMAGE_URL = assetUrl('/uploads/placeholder-image.png');
 
 // TabPanel Component
 function TabPanel(props) {
@@ -53,6 +59,7 @@ function TabPanel(props) {
 }
 
 const TeacherClassManagement = () => {
+  const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
@@ -60,15 +67,22 @@ const TeacherClassManagement = () => {
   const [tabValue, setTabValue] = useState(0);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  
+  // Edit/Delete state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    creditsRequired: '',
+    image: ''
+  });
   // Fetch teacher's classes
   useEffect(() => {
     const fetchClasses = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_BASE_URL}/api/teacher/classes`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await api.get('/api/teacher/classes');
         setClasses(response.data);
         if (response.data.length > 0) {
           setSelectedClass(response.data[0]);
@@ -90,10 +104,8 @@ const TeacherClassManagement = () => {
       
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_BASE_URL}/api/enrollments/class/${selectedClass._id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+  // token not used here; api client handles auth
+        const response = await api.get(`/api/enrollments/class/${selectedClass._id}`);
         setEnrollments(response.data);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch enrollments');
@@ -114,6 +126,122 @@ const TeacherClassManagement = () => {
     setTabValue(0); // Reset to first tab
   };
 
+  // Edit Class Handlers
+  const handleEditClass = () => {
+    if (!selectedClass) return;
+    
+    setEditFormData({
+      name: selectedClass.name,
+      description: selectedClass.description,
+      creditsRequired: selectedClass.creditsRequired,
+      image: selectedClass.image
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEditSubmit = async () => {
+    if (!selectedClass) return;
+    
+    setLoading(true);
+    try {
+  // token not used here; api client handles auth
+      const response = await api.put(
+        `/api/teacher/class/${selectedClass._id}`,
+        editFormData
+      );
+      
+      // Update the class in the local state
+      setClasses(prev => prev.map(cls => 
+        cls._id === selectedClass._id ? response.data.class : cls
+      ));
+      setSelectedClass(response.data.class);
+      
+      setSuccess('Class updated successfully!');
+      setEditDialogOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update class');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Class Handlers
+  const handleDeleteClass = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedClass) return;
+    
+    setLoading(true);
+    try {
+  // token not used here; api client handles auth
+      await api.delete(`/api/teacher/class/${selectedClass._id}`);
+      
+      // Remove the class from local state
+      setClasses(prev => prev.filter(cls => cls._id !== selectedClass._id));
+      setSelectedClass(null);
+      
+      setSuccess('Class deleted successfully!');
+      setDeleteDialogOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete class');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Enrollment Management Handlers
+  const handleApproveEnrollment = async (enrollmentId) => {
+    setLoading(true);
+    try {
+  // token not used here; api client handles auth
+      await api.post(`/api/enrollments/respond`, { enrollmentId, status: 'Approved' });
+      
+      // Update enrollment status in local state
+      setEnrollments(prev => prev.map(enrollment => 
+        enrollment._id === enrollmentId 
+          ? { ...enrollment, status: 'Approved' } 
+          : enrollment
+      ));
+      
+      setSuccess('Enrollment approved successfully!');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to approve enrollment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectEnrollment = async (enrollmentId) => {
+    setLoading(true);
+    try {
+  // token not used here; api client handles auth
+      await api.post(`/api/enrollments/respond`, { enrollmentId, status: 'Rejected' });
+      
+      // Update enrollment status in local state
+      setEnrollments(prev => prev.map(enrollment => 
+        enrollment._id === enrollmentId 
+          ? { ...enrollment, status: 'Rejected' } 
+          : enrollment
+      ));
+      
+      setSuccess('Enrollment rejected successfully!');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to reject enrollment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading && classes.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
@@ -124,6 +252,18 @@ const TeacherClassManagement = () => {
 
   return (
     <Box sx={{ flexGrow: 1, p: 3 }}>
+      {/* Back Button */}
+      <Box sx={{ mb: 2 }}>
+        <Button
+          startIcon={<ArrowBack />}
+          onClick={() => navigate('/teacher-dashboard')}
+          variant="outlined"
+          sx={{ mb: 2 }}
+        >
+          Back to Dashboard
+        </Button>
+      </Box>
+
       <Typography variant="h4" gutterBottom>
         Manage Your Classes
       </Typography>
@@ -214,7 +354,7 @@ const TeacherClassManagement = () => {
                       <CardMedia
                         component="img"
                         height="140"
-                        image={selectedClass.image ? `${API_BASE_URL}/${selectedClass.image.replace(/\\/g, '/')}` : FALLBACK_IMAGE_URL}
+                        image={selectedClass.image ? assetUrl(selectedClass.image.replace(/\\/g, '/')) : FALLBACK_IMAGE_URL}
                         alt={selectedClass.name}
                       />
                     </Card>
@@ -253,10 +393,19 @@ const TeacherClassManagement = () => {
                     )}
                     
                     <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                      <Button variant="outlined" startIcon={<Edit />}>
+                      <Button 
+                        variant="outlined" 
+                        startIcon={<Edit />}
+                        onClick={handleEditClass}
+                      >
                         Edit Class
                       </Button>
-                      <Button variant="outlined" color="error" startIcon={<Delete />}>
+                      <Button 
+                        variant="outlined" 
+                        color="error" 
+                        startIcon={<Delete />}
+                        onClick={handleDeleteClass}
+                      >
                         Delete Class
                       </Button>
                     </Box>
@@ -308,10 +457,21 @@ const TeacherClassManagement = () => {
                             secondary={`Request date: ${new Date(enrollment.createdAt).toLocaleDateString()}`} 
                           />
                           <Box>
-                            <Button color="primary" variant="contained" size="small" sx={{ mr: 1 }}>
+                            <Button 
+                              color="primary" 
+                              variant="contained" 
+                              size="small" 
+                              sx={{ mr: 1 }}
+                              onClick={() => handleApproveEnrollment(enrollment._id)}
+                            >
                               Approve
                             </Button>
-                            <Button color="error" variant="outlined" size="small">
+                            <Button 
+                              color="error" 
+                              variant="outlined" 
+                              size="small"
+                              onClick={() => handleRejectEnrollment(enrollment._id)}
+                            >
                               Reject
                             </Button>
                           </Box>
@@ -371,6 +531,82 @@ const TeacherClassManagement = () => {
           {success}
         </Alert>
       </Snackbar>
+
+      {/* Edit Class Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Class</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Class Name"
+              name="name"
+              value={editFormData.name}
+              onChange={handleEditFormChange}
+              fullWidth
+              required
+            />
+            <TextField
+              label="Description"
+              name="description"
+              value={editFormData.description}
+              onChange={handleEditFormChange}
+              fullWidth
+              multiline
+              rows={4}
+            />
+            <TextField
+              label="Credits Required"
+              name="creditsRequired"
+              type="number"
+              value={editFormData.creditsRequired}
+              onChange={handleEditFormChange}
+              fullWidth
+              required
+            />
+            <TextField
+              label="Image URL"
+              name="image"
+              value={editFormData.image}
+              onChange={handleEditFormChange}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleEditSubmit} 
+            variant="contained" 
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={20} /> : 'Update Class'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Class</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the class "{selectedClass?.name}"?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone. All enrolled students will be removed from this class.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={20} /> : 'Delete Class'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -24,7 +24,7 @@ import axios from 'axios';
 import { Add, Edit, Delete, Download } from '@mui/icons-material';
 import dayjs from 'dayjs';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+import { API_BASE_URL } from '../config';
 
 const ReportCenter = () => {
   const navigate = useNavigate();

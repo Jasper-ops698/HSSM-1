@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+import api from '../api';
+import { useNavigate } from 'react-router-dom';
+// API_BASE_URL no longer required here; use centralized `api` client
 import {
   CircularProgress,
   Button,
@@ -19,6 +21,7 @@ import {
   Alert,            // Added for feedback messages
   Snackbar,         // Added for feedback messages
 } from '@mui/material';
+import { ArrowBack, ArrowForward, Refresh } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import {
   Chart as ChartJS,
@@ -70,6 +73,7 @@ const modalStyle = {
 };
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]); // Will store detailed user list now
   const [requests, setRequests] = useState([]);
   const [services, setServices] = useState([]);
@@ -87,7 +91,6 @@ const AdminDashboard = () => {
 
   const itemsPerPage = 5; // For HSSM reports pagination
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000'; // Provide a fallback
 
   const getToken = () => localStorage.getItem('token');
 
@@ -103,17 +106,12 @@ const AdminDashboard = () => {
         return;
       }
 
-      const headers = { Authorization: `Bearer ${token}` };
-
       // Fetch analytics data (assuming it includes the user list)
-      const analyticsResponse = await axios.get(`${API_BASE_URL}/api/admin/analytics`, { headers });
+      const analyticsResponse = await api.get('/api/admin/analytics');
       const data = analyticsResponse.data;
 
       // Fetch paginated HSSM reports
-      const reportsResponse = await axios.get(
-        `${API_BASE_URL}/api/admin/hssmProviderReports?page=${currentPage}&limit=${itemsPerPage}`,
-        { headers }
-      );
+      const reportsResponse = await api.get(`/api/admin/hssmProviderReports?page=${currentPage}&limit=${itemsPerPage}`);
       // Optionally, add a section for the current admin to manage their own 2FA
       // <TwoFactorSettings apiBaseUrl={API_BASE_URL} token={getToken()} />
       const normalizedReports = (reportsResponse.data.reports || []).map(r => ({
@@ -173,7 +171,7 @@ const AdminDashboard = () => {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, API_BASE_URL]); // Add API_BASE_URL to dependency array
+  }, [currentPage]);
 
   useEffect(() => {
     fetchData();
@@ -215,17 +213,12 @@ const AdminDashboard = () => {
       return;
     }
 
-    const endpoint = `${API_BASE_URL}/api/admin/users/${userId}/status`;
+      const endpoint = `/api/admin/users/${userId}/status`;
     const method = 'patch';
     const data = { isDisabled: !isDisabled }; // Toggle the state
 
     try {
-      await axios({
-        method: method,
-        url: endpoint,
-        headers: { Authorization: `Bearer ${token}` },
-        data: data
-      });
+        await api({ method, url: endpoint, data });
       setFeedback({ open: true, message: `User ${action}d successfully.`, severity: 'success' });
       // Update the user in the list immediately
       setUsers(prevUsers =>
@@ -253,10 +246,8 @@ const AdminDashboard = () => {
         return;
     }
 
-    try {
-        await axios.delete(`${API_BASE_URL}/api/admin/users/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+  try {
+    await api.delete(`/api/admin/users/${userId}`);
         setFeedback({ open: true, message: 'User deleted successfully.', severity: 'success' });
         // Refresh user data by removing the deleted user
         setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
@@ -282,9 +273,7 @@ const AdminDashboard = () => {
     }
     setIsLoading(true);
     try {
-      await axios.delete(`${API_BASE_URL}/api/admin/hssmProviderReports/${reportId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/api/admin/hssmProviderReports/${reportId}`);
       setFeedback({ open: true, message: 'Report deleted successfully.', severity: 'success' });
       setHssmReports((prev) => prev.filter((r) => (r.id || r._id) !== reportId));
       setTotalReports((prev) => Math.max(0, prev - 1));
@@ -326,9 +315,39 @@ const AdminDashboard = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 'bold', mb: 3 }}>
-        Admin Dashboard
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<ArrowBack />}
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </Button>
+          <Button 
+            variant="outlined" 
+            startIcon={<ArrowForward />}
+            onClick={() => navigate(1)}
+          >
+            Forward
+          </Button>
+          <Button 
+            variant="outlined" 
+            startIcon={<Refresh />}
+            onClick={() => {
+              setIsLoading(true);
+              fetchData();
+            }}
+            disabled={isLoading}
+          >
+            Refresh
+          </Button>
+        </Box>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          Admin Dashboard
+        </Typography>
+        <Box sx={{ width: 140 }} /> {/* Spacer for centering */}
+      </Box>
 
       {/* Feedback Snackbar */}
       <Snackbar
@@ -346,9 +365,9 @@ const AdminDashboard = () => {
         <StyledButton
           variant="contained"
           color="primary"
-          onClick={() => window.location.href = '/total'} // Consider using React Router's <Link> or navigate()
+          onClick={() => window.location.href = '/admin-panel'}
         >
-          View Available Services Page
+          Manage User Roles
         </StyledButton>
       </Box>
 
@@ -493,6 +512,11 @@ const AdminDashboard = () => {
                   <TableRow hover role="checkbox" tabIndex={-1} key={user.id || user._id}>
                     <TableCell>{user.username || user.email || 'N/A'}</TableCell>
                     <TableCell>{user.role}</TableCell>
+                    <TableCell>
+                      <Typography variant='body2' color={user.isDisabled ? 'error.main' : 'success.main'}>
+                        {user.isDisabled ? 'Disabled' : 'Active'}
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       <Typography variant='body2' color={user.twoFactorEnabled ? 'success.main' : 'text.secondary'}>
                         {user.twoFactorEnabled ? 'Enabled' : 'Disabled'}

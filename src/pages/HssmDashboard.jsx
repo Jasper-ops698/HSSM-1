@@ -1,14 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Grid, Paper, Typography, CircularProgress, Alert } from '@mui/material';
+import { Box, Container, Grid, Paper, Typography, CircularProgress, Alert, Button } from '@mui/material';
 import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import axios from 'axios';
+import { rateLimitedRequest } from '../utils/rateLimitedRequest';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { ArrowBack, ArrowForward } from '@mui/icons-material';
+import { API_BASE_URL } from '../config';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
-
 const HssmDashboard = () => {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+    // Session timeout: log out after 15 minutes
+    useEffect(() => {
+        let sessionTimeout;
+        sessionTimeout = setTimeout(() => {
+            if (logout) logout();
+            alert('Your session has expired. Please log in again.');
+            navigate('/login');
+        }, 15 * 60 * 1000);
+        return () => {
+            clearTimeout(sessionTimeout);
+        };
+    }, [logout, navigate]);
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -17,7 +33,9 @@ const HssmDashboard = () => {
         const fetchData = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`${API_BASE_URL}/api/hssm/dashboard`, {
+                const response = await rateLimitedRequest({
+                    url: `${API_BASE_URL}/api/hssm/dashboard`,
+                    method: 'get',
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setDashboardData(response.data);
@@ -68,9 +86,28 @@ const HssmDashboard = () => {
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-                HSSM Dashboard
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button 
+                        variant="outlined" 
+                        startIcon={<ArrowBack />}
+                        onClick={() => navigate(-1)}
+                    >
+                        Back
+                    </Button>
+                    <Button 
+                        variant="outlined" 
+                        startIcon={<ArrowForward />}
+                        onClick={() => navigate(1)}
+                    >
+                        Forward
+                    </Button>
+                </Box>
+                <Typography variant="h4" component="h1">
+                    HSSM Dashboard
+                </Typography>
+                <Box sx={{ width: 140 }} /> {/* Spacer for centering */}
+            </Box>
             
             {/* KPIs */}
             <Grid container spacing={3} sx={{ mb: 4 }}>

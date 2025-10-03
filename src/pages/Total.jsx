@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Grid, Typography, Box, CircularProgress, TextField, InputAdornment } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import axios from 'axios';
+import api from '../api';
 import ServiceCard from '../components/ServiceCard';
 
 const Total = () => {
@@ -10,12 +10,10 @@ const Total = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
-
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/api/services`);
+        const { data } = await api.get('/api/services');
         setServices(data.data || data);
         setLoading(false);
       } catch (err) {
@@ -24,7 +22,7 @@ const Total = () => {
       }
     };
     fetchServices();
-  }, [API_BASE_URL]);
+  }, []);
 
   const filteredServices = services.filter(service => 
     service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

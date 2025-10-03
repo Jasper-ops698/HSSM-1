@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Container, Typography, Card, CardContent, Button, Grid, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Box, Snackbar, Alert
 } from '@mui/material';
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import api from '../api';
 const LOGO_COLOR = '#1976d2'; // Use your actual logo color
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -26,10 +24,7 @@ const ClassTimetableManager = () => {
   const fetchClasses = async () => {
   // setIsLoading(true); // Removed unused loading state
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/classes`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/classes');
       setClasses(res.data);
     } catch (err) {
       setFeedback({ open: true, message: 'Failed to fetch classes.', severity: 'error' });
@@ -40,10 +35,7 @@ const ClassTimetableManager = () => {
 
   const fetchTeachers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/users?role=teacher`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/users', { params: { role: 'teacher' } });
       setTeachers(res.data);
     } catch (err) {
       setTeachers([]);
@@ -54,10 +46,7 @@ const ClassTimetableManager = () => {
     setSelectedClass(classId);
   // setIsLoading(true); // Removed unused loading state
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/classes/${classId}/timetable`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get(`/api/classes/${classId}/timetable`);
       setTimetable(res.data.entries || []);
     } catch (err) {
       setTimetable([]);
@@ -75,10 +64,7 @@ const ClassTimetableManager = () => {
     if (!selectedClass || !entry.day || !entry.startTime || !entry.endTime || !entry.teacher) return;
   // setIsLoading(true); // Removed unused loading state
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/classes/${selectedClass}/timetable`, entry, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/api/classes/${selectedClass}/timetable`, entry);
       setFeedback({ open: true, message: 'Timetable entry added!', severity: 'success' });
       handleClassSelect(selectedClass);
     } catch (err) {

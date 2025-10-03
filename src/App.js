@@ -10,7 +10,7 @@ import Loading from './components/Loading'; // Fallback loading component
 
 // Lazy-loaded components
 const Home = React.lazy(() => import('./pages/Home'));
-const ClassEnrollmentPage = React.lazy(() => import('./pages/ClassPage'));
+// ClassEnrollmentPage removed (classes feature deprecated)
 const Login = React.lazy(() => import('./pages/Login'));
 const Signup = React.lazy(() => import('./pages/Signup'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -22,7 +22,6 @@ const ClassTimetableManager = React.lazy(() => import('./pages/ClassTimetableMan
 const Hssm = React.lazy(() => import('./pages/HSSM'));
 const HssmDashboard = React.lazy(() => import('./pages/HssmDashboard'));
 const NotFound = React.lazy(() => import('../src/NotFound')); // 404 Page
-const Total = React.lazy(() => import('./pages/Total'));
 const Profile2FA = React.lazy(() => import('./pages/Profile2FA'));
 const ReportCenter = React.lazy(() => import('./pages/ReportCenter'));
 const ReportEditor = React.lazy(() => import('./pages/ReportEditor'));
@@ -30,9 +29,17 @@ const TeacherClassManagement = React.lazy(() => import('./pages/TeacherClassMana
 const StudentDashboard = React.lazy(() => import('./pages/StudentDashboard'));
 const HodDashboard = React.lazy(() => import('./pages/HodDashboard'));
 const CreditControllerDashboard = React.lazy(() => import('./pages/CreditControllerDashboard'));
+const CreateClass = React.lazy(() => import('./pages/CreateClass'));
+const TeacherDashboard = React.lazy(() => import('./pages/TeacherDashboard'));
+const VenueBooking = React.lazy(() => import('./pages/VenueBooking'));
+const ClassManagement = React.lazy(() => import('./pages/ClassManagement'));
 // Add an Unauthorized page component (you'll need to create this simple page)
 const UnauthorizedPage = React.lazy(() => import('./pages/UnauthorizedPage'));
 const EmailVerification = React.lazy(() => import('./pages/EmailVerification'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
+const UserProfile = React.lazy(() => import('./pages/UserProfile'));
+// Chat page removed: chat is provided as a floating widget on the home page
 
 // Updated MUI theme (keep your theme)
 const theme = createTheme({
@@ -67,9 +74,10 @@ const App = () => {
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/about" element={<Footer />} />
-                <Route path="/total" element={<Total />} />
                 <Route path="/waiting-for-role" element={<WaitingForRole />} />
                 <Route path="/verify-email" element={<EmailVerification />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
                 {/* Route for unauthorized access */}
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
                 {/* User 2FA self-service page */}
@@ -80,17 +88,17 @@ const App = () => {
                 {/* Group 1: Routes requiring login, but no specific role (like individual users) */}
                 {/* The ProtectedRoute component without 'allowedRoles' just checks for login */}
                 <Route element={<ProtectedRoute />}>
-                  {/* Based on your Login.js, /service seems intended for logged-in users */}
-                  <Route path="/classes" element={<ClassEnrollmentPage />} />
+                  <Route path="/profile" element={<UserProfile />} />
                   {/* Add other general authenticated routes here if needed */}
                 </Route>
 
-                {/* Group 2: Routes requiring 'admin' role */}
+                {/* Group 2: Routes requiring 'admin', 'HOD', or 'teacher' role */}
                 {/* Pass the required roles as an array to 'allowedRoles' */}
-                <Route element={<ProtectedRoute allowedRoles={['admin', 'HOD']} />}>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'HOD', 'teacher']} />}>
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin-panel" element={<AdminPanel />} />
                   <Route path="/class-timetable" element={<ClassTimetableManager />} />
+                  <Route path="/manage-classes" element={<ClassManagement />} />
                 </Route>
 
 
@@ -106,7 +114,10 @@ const App = () => {
 
                 {/* Group 4: Teacher-specific routes */}
                 <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
+                  <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
                   <Route path="/manage-classes" element={<TeacherClassManagement />} />
+                  <Route path="/create-class" element={<CreateClass />} />
+                  <Route path="/book-venue" element={<VenueBooking />} />
                 </Route>
 
                 {/* Group 7: HOD-specific routes */}

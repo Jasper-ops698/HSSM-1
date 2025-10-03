@@ -4,7 +4,7 @@ import { Box, Typography, CircularProgress, Alert } from '@mui/material';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+import { API_BASE_URL } from '../config';
 
 const EmailVerification = () => {
   const [searchParams] = useSearchParams();

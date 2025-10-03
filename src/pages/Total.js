@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import assetUrl from '../utils/assetUrl';
+import api from '../api';
 import {
     Grid,
     Stack,
@@ -18,14 +19,13 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // Icon for back button
 
 // Ensure API_BASE_URL has a fallback for local development if .env is not set
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000'; // Example fallback
-const FALLBACK_IMAGE_URL = `${API_BASE_URL}/uploads/placeholder-image.png`;
+const FALLBACK_IMAGE_URL = assetUrl('/uploads/placeholder-image.png');
 
 const renderImageUrl = (imagePath) => {
     if (!imagePath) return FALLBACK_IMAGE_URL;
     if (imagePath.startsWith('data:image')) return imagePath;
     const cleanPath = imagePath.replace(/^uploads\/+/, '');
-    return `${API_BASE_URL}/uploads/${cleanPath}`;
+    return assetUrl(`/uploads/${cleanPath}`);
 };
 
 const Total = () => {
@@ -40,23 +40,8 @@ const Total = () => {
     const fetchServices = async () => {
         setIsLoading(true);
         setError(''); // Clear previous errors
-        try {
-            const token = localStorage.getItem('token');
-            // Basic check if token exists, could add more validation
-            if (!token) {
-                setError('Authentication token not found. Please log in.');
-                setIsLoading(false);
-                return;
-            }
-            if (!API_BASE_URL) {
-                setError('API configuration error. Base URL is missing.');
-                console.error('API_BASE_URL is not defined');
-                setIsLoading(false);
-                return;
-            }
-            const response = await axios.get(`${API_BASE_URL}/api/services/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            try {
+            const response = await api.get('/api/services/');
             setServices(response.data || []); // Ensure it's an array
             setFilteredServices(response.data || []);
         } catch (err) {

@@ -62,22 +62,65 @@ const Navbar = () => {
           ))}
           {user && (
             <>
-              <Button
-                color="inherit"
-                component={Link}
-                to="/classes"
-                sx={{ textDecoration: 'none' }}
-              >
-                Classes
-              </Button>
-              {user.role === 'teacher' && (
+              {/* Classes link removed */}
+              {user.role === 'admin' && (
                 <Button
                   color="inherit"
                   component={Link}
-                  to="/manage-classes"
+                  to="/admin-panel"
                   sx={{ textDecoration: 'none' }}
                 >
-                  Manage Classes
+                  Admin Panel
+                </Button>
+              )}
+              {user.role === 'teacher' && (
+                <>
+                  <Button
+                    color="inherit"
+                    component={Link}
+                    to="/teacher-dashboard"
+                    sx={{ textDecoration: 'none' }}
+                  >
+                    Dashboard
+                  </Button>
+                  <Button
+                    color="inherit"
+                    component={Link}
+                    to="/manage-classes"
+                    sx={{ textDecoration: 'none' }}
+                  >
+                    Manage Classes
+                  </Button>
+                </>
+              )}
+              {user.role === 'HOD' && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/hod-dashboard"
+                  sx={{ textDecoration: 'none' }}
+                >
+                  HOD Dashboard
+                </Button>
+              )}
+              {user.role === 'student' && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/student-dashboard"
+                  sx={{ textDecoration: 'none' }}
+                >
+                  Student Dashboard
+                </Button>
+              )}
+              {user.role === 'credit-controller' && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/credit-dashboard"
+                  sx={{ textDecoration: 'none' }}
+                >
+                  Credit Dashboard
                 </Button>
               )}
               {user.role === 'HSSM-provider' && (
@@ -90,6 +133,15 @@ const Navbar = () => {
                   HSSM Dashboard
                 </Button>
               )}
+              <Button
+                color="inherit"
+                component={Link}
+                to="/profile"
+                sx={{ textDecoration: 'none' }}
+              >
+                Profile
+              </Button>
+              {/* AI Chat moved to the homepage floating widget; route/link removed */}
               <Button
                 color="inherit"
                 component={Link}
@@ -139,22 +191,65 @@ const Navbar = () => {
             ))}
             {user && (
               <>
-                <ListItem
-                  button
-                  component={Link}
-                  to="/classes"
-                  onClick={handleMenuClose}
-                >
-                  <ListItemText primary="Classes" />
-                </ListItem>
-                {user.role === 'teacher' && (
+                {/* Classes link removed from mobile drawer */}
+                {user.role === 'admin' && (
                   <ListItem
                     button
                     component={Link}
-                    to="/manage-classes"
+                    to="/admin-panel"
                     onClick={handleMenuClose}
                   >
-                    <ListItemText primary="Manage Classes" />
+                    <ListItemText primary="Admin Panel" />
+                  </ListItem>
+                )}
+                {user.role === 'teacher' && (
+                  <>
+                    <ListItem
+                      button
+                      component={Link}
+                      to="/teacher-dashboard"
+                      onClick={handleMenuClose}
+                    >
+                      <ListItemText primary="Dashboard" />
+                    </ListItem>
+                    <ListItem
+                      button
+                      component={Link}
+                      to="/manage-classes"
+                      onClick={handleMenuClose}
+                    >
+                      <ListItemText primary="Manage Classes" />
+                    </ListItem>
+                  </>
+                )}
+                {user.role === 'HOD' && (
+                  <ListItem
+                    button
+                    component={Link}
+                    to="/hod-dashboard"
+                    onClick={handleMenuClose}
+                  >
+                    <ListItemText primary="HOD Dashboard" />
+                  </ListItem>
+                )}
+                {user.role === 'student' && (
+                  <ListItem
+                    button
+                    component={Link}
+                    to="/student-dashboard"
+                    onClick={handleMenuClose}
+                  >
+                    <ListItemText primary="Student Dashboard" />
+                  </ListItem>
+                )}
+                {user.role === 'credit-controller' && (
+                  <ListItem
+                    button
+                    component={Link}
+                    to="/credit-dashboard"
+                    onClick={handleMenuClose}
+                  >
+                    <ListItemText primary="Credit Dashboard" />
                   </ListItem>
                 )}
                 {user.role === 'HSSM-provider' && (
@@ -167,6 +262,15 @@ const Navbar = () => {
                     <ListItemText primary="HSSM Dashboard" />
                   </ListItem>
                 )}
+                <ListItem
+                  button
+                  component={Link}
+                  to="/profile"
+                  onClick={handleMenuClose}
+                >
+                  <ListItemText primary="Profile" />
+                </ListItem>
+                {/* Mobile AI Chat link removed - chat is available on the homepage as a floating widget */}
                 <ListItem
                   button
                   component={Link}

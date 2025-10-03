@@ -1,23 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, Typography, Snackbar, Alert
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, Typography, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import api from '../api';
 const LOGO_COLOR = '#1976d2';
 
-const StudentAbsenceModal = ({ open, onClose, classId, userId, refreshAbsences }) => {
+const StudentAbsenceModal = ({ open, onClose, enrolledClasses, userId, refreshAbsences }) => {
   useEffect(() => {
-    console.debug('StudentAbsenceModal mounted, open=', open, 'classId=', classId, 'userId=', userId);
+    console.debug('StudentAbsenceModal mounted, open=', open, 'enrolledClasses=', enrolledClasses, 'userId=', userId);
     return () => console.debug('StudentAbsenceModal unmounted');
-  }, [open, classId, userId]);
+  }, [open, enrolledClasses, userId]);
   const [reason, setReason] = useState('');
   const [date, setDate] = useState('');
   const [duration, setDuration] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
   const [evidence, setEvidence] = useState(null);
   const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'info' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Normalize enrolledClasses to objects with {_id, name}
+  const classOptions = React.useMemo(() => {
+    if (!enrolledClasses) return [];
+    // If array of strings (IDs), we don't have names, so just expose ids
+    if (Array.isArray(enrolledClasses) && enrolledClasses.length > 0 && typeof enrolledClasses[0] === 'string') {
+      return enrolledClasses.map(id => ({ _id: id, name: id }));
+    }
+    // If array of objects, map to {_id, name}
+    if (Array.isArray(enrolledClasses)) {
+      return enrolledClasses.map(c => ({ _id: c._id || c, name: c.name || String(c._id || c) }));
+    }
+    return [];
+  }, [enrolledClasses]);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -26,26 +38,22 @@ const StudentAbsenceModal = ({ open, onClose, classId, userId, refreshAbsences }
   };
 
   const handleSubmit = async () => {
-    if (!reason || !date || !duration) {
+    if (!reason || !date || !duration || !selectedClass) {
       setFeedback({ open: true, message: 'Please fill all required fields.', severity: 'warning' });
       return;
     }
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
       const formData = new FormData();
-      formData.append('user', userId);
       formData.append('role', 'student');
-      formData.append('class', classId);
+      formData.append('class', selectedClass);
       formData.append('reason', reason);
       formData.append('date', date);
       formData.append('duration', duration);
       if (evidence) formData.append('evidence', evidence);
-      await axios.post(`${API_BASE_URL}/api/absences`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post('/api/absences', formData);
       setFeedback({ open: true, message: 'Absence application submitted!', severity: 'success' });
-      setReason(''); setDate(''); setDuration(''); setEvidence(null);
+      setReason(''); setDate(''); setDuration(''); setSelectedClass(''); setEvidence(null);
       if (refreshAbsences) refreshAbsences();
       onClose();
     } catch (err) {
@@ -89,6 +97,20 @@ const StudentAbsenceModal = ({ open, onClose, classId, userId, refreshAbsences }
           onChange={e => setDuration(e.target.value)}
           sx={{ mb: 2 }}
         />
+        <FormControl fullWidth required sx={{ mb: 2 }}>
+          <InputLabel>Select Class</InputLabel>
+          <Select
+            value={selectedClass}
+            onChange={e => setSelectedClass(e.target.value)}
+            label="Select Class"
+          >
+            {classOptions && classOptions.map(cls => (
+              <MenuItem key={cls._id} value={cls._id}>
+                {cls.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         <Box sx={{ mb: 2 }}>
           <Button variant="outlined" component="label" sx={{ bgcolor: '#e3f2fd', color: LOGO_COLOR }}>
             {evidence ? 'Change Evidence' : 'Add Evidence (Optional)'}

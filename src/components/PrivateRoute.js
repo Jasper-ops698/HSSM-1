@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
-const PrivateRoute = ({ role }) => {
+const PrivateRoute = ({ allowedRoles }) => {
   // Retrieve token and user data from localStorage
   const token = localStorage.getItem('token');
   const userData = localStorage.getItem('userData');
@@ -18,12 +18,15 @@ const PrivateRoute = ({ role }) => {
     return <Navigate to="/login" />;
   }
 
-  
-  
-
-  // If the role is provided and user doesn't have the required role, redirect to unauthorized page
-  if (role && user.role !== role) {
-    console.log(`Access Denied. User role: ${user.role}, Required role: ${role}`);
+  // If allowedRoles is provided and user doesn't have one of the required roles, redirect to unauthorized page
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    console.log(`Access Denied. User role: ${user.role}, Required roles: ${allowedRoles.join(', ')}`);
+    // If the user is authenticated but has no assigned role yet, redirect them to the
+    // friendly waiting page so staff accounts created by sign-up see a pending message
+    // rather than a stark 'Unauthorized' page.
+    if (!user.role) {
+      return <Navigate to="/waiting-for-role" />;
+    }
     return <Navigate to="/unauthorized" />;
   }
 

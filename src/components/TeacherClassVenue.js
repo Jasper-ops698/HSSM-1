@@ -21,9 +21,7 @@ import {
   Snackbar
 } from '@mui/material';
 import { Edit, Add, LocationOn } from '@mui/icons-material';
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import api from '../api';
 
 const TeacherClassVenue = ({ classId }) => {
   const [announcements, setAnnouncements] = useState([]);
@@ -43,10 +41,7 @@ const TeacherClassVenue = ({ classId }) => {
     
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE_URL}/api/teacher/class/${classId}/venue-announcements`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/api/teacher/class/${classId}/venue-announcements`);
       setAnnouncements(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch venue announcements');
@@ -73,7 +68,7 @@ const TeacherClassVenue = ({ classId }) => {
     if (announcement) {
       setEditingAnnouncement(announcement);
       setFormData({
-        venue: announcement.venue,
+        venue: announcement.venue?.name || '',
         message: announcement.message || '',
         active: announcement.active
       });
@@ -102,20 +97,17 @@ const TeacherClassVenue = ({ classId }) => {
 
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
 
       if (editingAnnouncement) {
-        await axios.put(
-          `${API_BASE_URL}/api/teacher/class/${classId}/venue-announcement/${editingAnnouncement._id}`,
-          formData,
-          { headers: { Authorization: `Bearer ${token}` } }
+        await api.put(
+          `/api/teacher/class/${classId}/venue-announcement/${editingAnnouncement._id}`,
+          formData
         );
         setSuccess('Venue announcement updated successfully');
       } else {
-        await axios.post(
-          `${API_BASE_URL}/api/teacher/class/${classId}/venue-announcement`,
-          formData,
-          { headers: { Authorization: `Bearer ${token}` } }
+        await api.post(
+          `/api/teacher/class/${classId}/venue-announcement`,
+          formData
         );
         setSuccess('Venue announcement created successfully');
       }
@@ -131,11 +123,9 @@ const TeacherClassVenue = ({ classId }) => {
 
   const handleToggleActive = async (announcement) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `${API_BASE_URL}/api/teacher/class/${classId}/venue-announcement/${announcement._id}`,
-        { ...announcement, active: !announcement.active },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(
+        `/api/teacher/class/${classId}/venue-announcement/${announcement._id}`,
+        { ...announcement, active: !announcement.active }
       );
 
       // Update local state

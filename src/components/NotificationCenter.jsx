@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconButton, Badge, Menu, MenuItem, Typography, Divider } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 const NotificationCenter = () => {
   const { user } = useAuth();
@@ -14,10 +12,7 @@ const NotificationCenter = () => {
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/notifications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/api/notifications');
       setNotifications(res.data);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -26,7 +21,7 @@ const NotificationCenter = () => {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // Poll every minute
+    const interval = setInterval(fetchNotifications, 180000); // Poll every 3 minutes
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
@@ -38,15 +33,32 @@ const NotificationCenter = () => {
     setAnchorEl(null);
   };
 
+
   const handleMarkAsRead = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API_BASE_URL}/api/notifications/mark-read`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.put('/api/notifications/mark-all-read', {});
       fetchNotifications(); // Refresh notifications
     } catch (error) {
       console.error('Failed to mark notifications as read:', error);
+    }
+    handleCloseMenu();
+  };
+
+  const handleDeleteNotification = async (id) => {
+    try {
+      await api.delete(`/api/notifications/${id}`);
+      fetchNotifications();
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
+  };
+
+  const handleDeleteAllNotifications = async () => {
+    try {
+      await api.delete('/api/notifications');
+      fetchNotifications();
+    } catch (error) {
+      console.error('Failed to delete all notifications:', error);
     }
     handleCloseMenu();
   };
@@ -79,10 +91,13 @@ const NotificationCenter = () => {
         <Divider />
         {notifications.length > 0 ? (
           notifications.map(notification => (
-            <MenuItem key={notification._id} onClick={handleCloseMenu} sx={{ whiteSpace: 'normal' }}>
-              <Typography variant="body2" sx={{ fontWeight: notification.read ? 'normal' : 'bold' }}>
+            <MenuItem key={notification._id} sx={{ whiteSpace: 'normal', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" sx={{ fontWeight: notification.read ? 'normal' : 'bold', flex: 1 }}>
                 {notification.message}
               </Typography>
+              <IconButton size="small" color="error" onClick={() => handleDeleteNotification(notification._id)}>
+                <span role="img" aria-label="delete">🗑️</span>
+              </IconButton>
             </MenuItem>
           ))
         ) : (
@@ -90,13 +105,16 @@ const NotificationCenter = () => {
             <Typography>No new notifications</Typography>
           </MenuItem>
         )}
+        <Divider />
         {unreadCount > 0 && (
-          <>
-            <Divider />
-            <MenuItem onClick={handleMarkAsRead}>
-              <Typography color="primary">Mark all as read</Typography>
-            </MenuItem>
-          </>
+          <MenuItem onClick={handleMarkAsRead}>
+            <Typography color="primary">Mark all as read</Typography>
+          </MenuItem>
+        )}
+        {notifications.length > 0 && (
+          <MenuItem onClick={handleDeleteAllNotifications}>
+            <Typography color="error">Delete all notifications</Typography>
+          </MenuItem>
         )}
       </Menu>
     </>

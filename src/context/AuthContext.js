@@ -1,10 +1,29 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode'; // Use the library for decoding
+import api from '../api';
 
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+
+  // Function to refresh user data from server
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await api.get('/api/auth/profile');
+      const userData = response.data.user;
+      localStorage.setItem('userData', JSON.stringify(userData));
+      setUser(userData);
+      console.log('User data refreshed:', userData);
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+      // If refresh fails, logout to be safe
+      logout();
+    }
+  }, []);
 
   // Combined Effect for Initial Load and Token Check
   useEffect(() => {
@@ -48,6 +67,18 @@ const AuthProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
+  // Effect to refresh user data when window gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        refreshUser();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, refreshUser]); // Depend on user and refreshUser
+
   const login = (userData) => {
     const { token, user } = userData;
 
@@ -70,7 +101,7 @@ const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { TextField, Button, Box, Typography, IconButton } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext'; // Ensure this path is correct
 import { IoEye, IoEyeOff } from 'react-icons/io5';
 import { getMessaging, getToken } from 'firebase/messaging';
 import { initializeApp } from 'firebase/app';
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
+import api from '../api';
 
 // --- Firebase Config --- (Ensure your .env variables are loaded correctly)
 const firebaseConfig = {
@@ -21,7 +21,6 @@ const firebaseConfig = {
 };
 
 // --- API URL --- (Ensure your .env variable is loaded correctly)
-const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 const Login = () => {
   // Ensure useAuth() provides a 'login' function
@@ -117,7 +116,7 @@ const Login = () => {
     setPendingLogin(null);
     try {
       // --- Login API Call ---
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, formData, {
+      const response = await api.post('/api/auth/login', formData, {
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -161,13 +160,11 @@ const Login = () => {
         try {
             // Make this call non-blocking for the user login flow if possible
             // No need to await if the login doesn't depend on its success
-             axios.post(`${API_BASE_URL}/api/auth/device-token`, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Include Authorization header if this endpoint requires it
-                    'Authorization': `Bearer ${token}`
-                },
-            }).then(deviceTokenResponse => {
+       api.post('/api/auth/device-token', payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).then(deviceTokenResponse => {
                  if (deviceTokenResponse.status === 200) {
 
                  } else {
@@ -200,6 +197,15 @@ const Login = () => {
         case 'admin':
           navigate('/admin');
           break;
+        case 'teacher':
+          navigate('/manage-classes');
+          break;
+        case 'credit-controller':
+          navigate('/credit-dashboard');
+          break;
+        case 'HOD':
+          navigate('/hod-dashboard');
+          break;
         case 'HSSM-provider':
           navigate('/hssm');
           break;
@@ -207,10 +213,9 @@ const Login = () => {
           navigate('/waiting-for-role');
           break;
         default:
-
-          setError('Login successful, but encountered an unknown user role.');
-          // Maybe navigate to a default dashboard or show an error page
-          navigate('/'); // Navigate to a safe default page
+          console.warn(`Unknown user role: ${user.role}`);
+          setError(`Login successful, but role "${user.role}" is not fully configured. Please contact support.`);
+          navigate('/dashboard'); // Navigate to general dashboard as fallback
           break;
       }
 
@@ -247,7 +252,7 @@ const Login = () => {
     setError('');
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+      const response = await api.post('/api/auth/login', {
         email: pendingLogin.email,
         password: pendingLogin.password,
         twoFactorToken,
@@ -288,27 +293,9 @@ const Login = () => {
     }
   };
 
-  // --- Forgot Password --- (Seems okay, unrelated to main issue)
-  const handleForgotPassword = async () => {
-    // Basic check if email is entered
-    if (!formData.email || !validateEmail(formData.email)) {
-        setError('Please enter a valid email address to reset password.');
-        return;
-    }
-    setError(''); // Clear previous errors
-    try {
-      // Maybe add a loading indicator for this action too
-      const response = await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email: formData.email });
-      if (response.status === 200) {
-        alert('Password reset email sent. Please check your inbox (and spam folder).'); // Use alert or preferably a toast
-      } else {
-         // This case might not be reached if axios throws for non-200
-        setError(`Failed to send password reset email. Server responded with status: ${response.status}`);
-      }
-    } catch (err) {
-      console.error('Error sending password reset email:', err);
-       setError(err.response?.data?.message || 'An error occurred while sending the password reset email.');
-    }
+  // --- Forgot Password --- (Navigate to dedicated page)
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
   };
 
   const handleShowPassword = () => setShowPassword(!showPassword);
@@ -322,7 +309,7 @@ const Login = () => {
       const user = result.user;
       const idToken = await user.getIdToken();
       // Send the ID token to your backend
-      const response = await axios.post(`${API_BASE_URL}/api/auth/google`, { idToken });
+  const response = await api.post('/api/auth/google', { idToken });
       const { token, user: backendUser } = response.data;
       // Store token and user info as you do for email/password login
       localStorage.setItem('token', token);

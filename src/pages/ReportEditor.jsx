@@ -16,7 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Save, ArrowBack } from '@mui/icons-material';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+import { API_BASE_URL } from '../config';
 
 const ReportEditor = () => {
   const { id } = useParams();

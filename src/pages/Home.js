@@ -9,8 +9,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import Modal from '@mui/material/Modal';
 import CircularProgress from '@mui/material/CircularProgress';
 
-// Use environment variable for API base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+// Centralized API base URL
+import api from '../api';
 
 // Common topics for suggestions
 const COMMON_TOPICS = [
@@ -27,19 +27,43 @@ const CustomChat = () => {
   const [suggestions, setSuggestions] = useState(COMMON_TOPICS);
   const [suggestionsOpen, setSuggestionsOpen] = useState(true);
   const [historyAnchorEl, setHistoryAnchorEl] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
   const chatBoxRef = React.useRef(null);
+  const [isPublicMode, setIsPublicMode] = useState(false);
 
-  // Load chat history from localStorage on component mount
+  // Check authentication status and load chat history
   useEffect(() => {
-    const savedMessages = localStorage.getItem('chatHistory');
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
+    const token = localStorage.getItem('token');
+    const authenticated = !!token;
+
+    if (!authenticated) {
+      // For unauthenticated visitors provide a navigation assistant and allow public messages
+      setIsPublicMode(true);
+      setMessages([
+        { sender: 'bot', text: '👋 Welcome! I\'m the Navigation Assistant — ask about the site, features, or how to get started. You can chat here without logging in.' }
+      ]);
+      return;
     }
+
+    const loadChatHistory = async () => {
+      try {
+        const response = await api.get('/api/chat/history', { params: { limit: 20 } });
+        const data = response.data;
+        if (data && data.success && data.messages && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+      }
+    };
+
+    loadChatHistory();
   }, []);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('chatHistory', JSON.stringify(messages));
+    // Messages are now stored on the server, no need for localStorage
+    // This effect is kept for any future local caching needs
   }, [messages]);
 
   // Scroll to bottom when messages change
@@ -84,55 +108,170 @@ const CustomChat = () => {
 
   const handleSendMessage = async (message) => {
     setLoading(true);
-    try {
-      console.log('Sending message to chat API:', message);
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ message }),
-      });
-      
-      console.log('Raw response:', response);
-      const data = await response.json();
-      console.log('Response data:', data);
-      
-      if (!response.ok) {
-        throw new Error(data.reply || `Server error: ${response.status} ${response.statusText}`);
-      }
-      
-      if (!data.success) {
-        throw new Error(data.reply || 'The AI service is currently unavailable');
-      }
-      
-      setMessages((prev) => [
-        ...prev,
-        { sender: 'bot', text: data.reply }
-      ]);
+    setIsTyping(true);
+      try {
+        console.log('Sending message to chat API:', message);
 
-      // Update suggestions after bot response
-      setSuggestions(generateSuggestions());
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages((prev) => [
-        ...prev,
-        { 
-          sender: 'bot', 
-          text: error.message || 'Sorry, I encountered an error. Please try again.' 
+        const token = localStorage.getItem('token');
+        const isAuthenticated = !!token;
+        const endpoint = isAuthenticated ? '/api/chat' : '/api/chat/public';
+
+        // Use centralized axios client
+        let response;
+        try {
+          response = await api.post(endpoint, { message });
+        } catch (err) {
+          const status = err.response?.status;
+          const data = err.response?.data || {};
+
+          if (status === 401) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                sender: 'bot',
+                text: '🔐 Your session has expired. Please log in again.',
+                isError: true,
+                timestamp: new Date().toISOString()
+              }
+            ]);
+            setIsTyping(false);
+            return;
+          }
+
+          if (status === 429) {
+            const retryAfter = data.retryAfter || 60;
+            setMessages((prev) => [
+              ...prev,
+              {
+                sender: 'bot',
+                text: `${data.reply || 'Service is busy'} (Please wait ${Math.ceil(retryAfter / 60)} minute(s) before trying again)`,
+                isError: true,
+                timestamp: new Date().toISOString()
+              }
+            ]);
+            setIsTyping(false);
+            return;
+          }
+
+          // Generic network/server error
+          setMessages((prev) => [
+            ...prev,
+            {
+              sender: 'bot',
+              text: data.reply || `Server error: ${status || 'network error'}`,
+              isError: true,
+              timestamp: new Date().toISOString()
+            }
+          ]);
+          setIsTyping(false);
+          return;
         }
-      ]);
-    } finally {
-      setLoading(false);
+
+        const data = response.data;
+        if (!data || !data.success) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              sender: 'bot',
+              text: data?.reply || 'The AI service is currently unavailable',
+              isError: true,
+              timestamp: new Date().toISOString()
+            }
+          ]);
+          setIsTyping(false);
+          return;
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'bot',
+            text: data.reply,
+            timestamp: new Date().toISOString()
+          }
+        ]);
+
+        // If the user was unauthenticated, ensure public mode remains true
+        setIsPublicMode(!isAuthenticated);
+
+        // Update suggestions after bot response
+        setSuggestions(generateSuggestions());
+      } catch (error) {
+        console.error('Chat error:', error);
+
+        let errorMessage = error.message || 'Sorry, I encountered an error. Please try again.';
+
+        // Add helpful context for common errors
+        if ((error.message || '').includes('rate limit') || (error.message || '').includes('busy')) {
+          errorMessage += '\n\n💡 Tip: The AI assistant is popular! Try again in a few minutes.';
+        } else if ((error.message || '').includes('timeout')) {
+          errorMessage += '\n\n💡 Tip: The service is taking longer than usual. Please try again.';
+        } else if ((error.message || '').includes('session') || (error.message || '').includes('login')) {
+          errorMessage += '\n\n🔐 Please log in to continue chatting.';
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'bot',
+            text: errorMessage,
+            isError: true,
+            canRetry: true,
+            originalMessage: message,
+            timestamp: new Date().toISOString()
+          }
+        ]);
+      } finally {
+        setLoading(false);
+        setIsTyping(false);
+      }
+  };
+
+  const clearChatHistory = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You must be logged in to clear chat history.');
+        return;
+      }
+
+      try {
+        const response = await api.delete('/api/chat/history');
+        if (response.status === 200) {
+          setMessages([{ sender: 'bot', text: 'Hello! How can I assist you today?' }]);
+          setSuggestions(COMMON_TOPICS);
+        } else {
+          alert('Failed to clear chat history. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error clearing chat history:', error);
+        alert('Failed to clear chat history. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error clearing chat history:', error);
+      alert('Failed to clear chat history. Please try again.');
     }
+  };
+
+  const handleRetryMessage = async (originalMessage) => {
+    if (!originalMessage || loading) return;
+    
+    // Remove the error message from the chat
+    setMessages(prev => prev.filter(msg => !msg.canRetry || msg.originalMessage !== originalMessage));
+    
+    // Retry sending the message
+    await handleSendMessage(originalMessage);
   };
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const messageText = input.trim();
     setInput('');
-    setMessages((prev) => [...prev, { sender: 'user', text: messageText }]);
+    setMessages((prev) => [...prev, { 
+      sender: 'user', 
+      text: messageText,
+      timestamp: new Date().toISOString()
+    }]);
     await handleSendMessage(messageText);
   };
 
@@ -145,6 +284,11 @@ const CustomChat = () => {
 
   const handleSuggestionClick = (suggestion) => {
     setInput(suggestion);
+    setMessages((prev) => [...prev, { 
+      sender: 'user', 
+      text: suggestion,
+      timestamp: new Date().toISOString()
+    }]);
     handleSendMessage(suggestion);
   };
 
@@ -156,20 +300,69 @@ const CustomChat = () => {
     setHistoryAnchorEl(null);
   };
 
-  const handleClearHistory = () => {
-    if (window.confirm('Are you sure you want to clear your chat history?')) {
-      setMessages([{ sender: 'bot', text: 'Hello! How can I assist you today?' }]);
-      localStorage.removeItem('chatHistory');
-      handleHistoryClose();
+  const handleClearHistory = async () => {
+    if (!window.confirm('Are you sure you want to clear your chat history? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You must be logged in to clear chat history.');
+        handleHistoryClose();
+        return;
+      }
+
+      try {
+        const response = await api.delete('/api/chat/history');
+        if (response.status === 200) {
+          setMessages([{ sender: 'bot', text: 'Hello! How can I assist you today?' }]);
+          setSuggestions(COMMON_TOPICS);
+          handleHistoryClose();
+        } else {
+          alert('Failed to clear chat history. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error clearing chat history:', error);
+        alert('Failed to clear chat history. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error clearing chat history:', error);
+      alert('Failed to clear chat history. Please try again.');
     }
   };
 
   const historyOpen = Boolean(historyAnchorEl);
 
   return (
-    <Paper elevation={3} sx={{ p: 2, maxWidth: 420, m: 'auto', mt: 4, display: 'flex', flexDirection: 'column', height: 500 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-        <IconButton onClick={handleHistoryClick} color="primary" title="Chat History">
+    <Paper elevation={3} sx={{ 
+      p: 2, 
+      maxWidth: '100%', 
+      m: 'auto', 
+      height: '100%',
+      maxHeight: '100%',
+      display: 'flex', 
+      flexDirection: 'column',
+      borderRadius: 3
+    }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        mb: 1,
+        pb: 1,
+        borderBottom: 1,
+        borderColor: 'divider'
+      }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {isPublicMode ? 'Navigation Assistant' : 'AI Assistant'}
+          {isPublicMode && (
+            <Box component="span" sx={{ fontSize: '0.8rem', color: '#ff9800', bgcolor: 'rgba(255,152,0,0.1)', px: 1, borderRadius: 1 }}>
+              Navigation Only
+            </Box>
+          )}
+        </Typography>
+        <IconButton onClick={handleHistoryClick} color="primary" title="Chat History" size="small">
           <HistoryIcon />
         </IconButton>
         <Menu
@@ -240,8 +433,108 @@ const CustomChat = () => {
             ) : (
               msg.text
             )}
+            {msg.timestamp && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  display: 'block', 
+                  mt: 0.5, 
+                  opacity: 0.7,
+                  fontSize: '0.7rem'
+                }}
+              >
+                {new Date(msg.timestamp).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </Typography>
+            )}
+            {msg.canRetry && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="primary"
+                onClick={() => handleRetryMessage(msg.originalMessage)}
+                sx={{ 
+                  mt: 1, 
+                  minHeight: 24,
+                  fontSize: '0.7rem',
+                  padding: '2px 8px'
+                }}
+                disabled={loading}
+              >
+                Retry
+              </Button>
+            )}
           </Box>
         ))}
+        
+        {/* Typing Indicator */}
+        {isTyping && (
+          <Box
+            sx={{
+              alignSelf: 'flex-start',
+              maxWidth: '80%',
+              mb: 1.5,
+              p: 1.5,
+              borderRadius: 3,
+              backgroundColor: '#e0e0e0',
+              color: '#222',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              boxShadow: 1,
+            }}
+          >
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Box 
+                sx={{ 
+                  width: 6, 
+                  height: 6, 
+                  borderRadius: '50%', 
+                  backgroundColor: '#666',
+                  animation: 'bounce 1.4s infinite ease-in-out both',
+                  '@keyframes bounce': {
+                    '0%, 80%, 100%': { transform: 'scale(0)' },
+                    '40%': { transform: 'scale(1)' }
+                  }
+                }}
+                style={{ animationDelay: '0s' }}
+              />
+              <Box 
+                sx={{ 
+                  width: 6, 
+                  height: 6, 
+                  borderRadius: '50%', 
+                  backgroundColor: '#666',
+                  animation: 'bounce 1.4s infinite ease-in-out both',
+                  '@keyframes bounce': {
+                    '0%, 80%, 100%': { transform: 'scale(0)' },
+                    '40%': { transform: 'scale(1)' }
+                  }
+                }}
+                style={{ animationDelay: '0.16s' }}
+              />
+              <Box 
+                sx={{ 
+                  width: 6, 
+                  height: 6, 
+                  borderRadius: '50%', 
+                  backgroundColor: '#666',
+                  animation: 'bounce 1.4s infinite ease-in-out both',
+                  '@keyframes bounce': {
+                    '0%, 80%, 100%': { transform: 'scale(0)' },
+                    '40%': { transform: 'scale(1)' }
+                  }
+                }}
+                style={{ animationDelay: '0.32s' }}
+              />
+            </Box>
+            <Typography variant="body2" sx={{ opacity: 0.7 }}>
+              AI is typing...
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       <Box sx={{ mb: 2 }}>
@@ -277,22 +570,41 @@ const CustomChat = () => {
           minRows={1}
           maxRows={4}
           variant="outlined"
-          placeholder={loading ? "Please wait..." : "Type your message..."}
+          placeholder={loading ? "AI is thinking..." : "Type your message..."}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleInputKeyDown}
           disabled={loading}
-          sx={{ opacity: loading ? 0.7 : 1 }}
+          sx={{ 
+            opacity: loading ? 0.7 : 1,
+            '& .MuiOutlinedInput-root': {
+              '&.Mui-disabled': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              }
+            }
+          }}
         />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSend}
-          disabled={loading || !input.trim()}
-          sx={{ minWidth: 80 }}
-        >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Send'}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={clearChatHistory}
+            disabled={loading}
+            size="small"
+            sx={{ minWidth: 100 }}
+          >
+            Clear Chat
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSend}
+            disabled={loading || !input.trim()}
+            sx={{ minWidth: 80 }}
+          >
+            {loading ? <CircularProgress size={24} color="inherit" /> : 'Send'}
+          </Button>
+        </Box>
       </Box>
     </Paper>
   );
@@ -333,16 +645,19 @@ const Home = () => {
         <Modal open={chatOpen} onClose={() => setChatOpen(false)}>
           <Box sx={{
             position: 'fixed',
-            bottom: 96,
-            right: 32,
-            width: 420,
+            bottom: { xs: 16, sm: 96 },
+            right: { xs: 16, sm: 32 },
+            width: { xs: 'calc(100vw - 32px)', sm: 420 },
             maxWidth: '95vw',
+            maxHeight: { xs: 'calc(100vh - 120px)', sm: '500px' },
             bgcolor: 'background.paper',
             borderRadius: 3,
             boxShadow: 24,
             p: 0,
             outline: 'none',
             zIndex: 1400,
+            display: 'flex',
+            flexDirection: 'column',
           }}>
             <CustomChat />
           </Box>
